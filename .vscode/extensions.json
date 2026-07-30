@@ -1,0 +1,10 @@
+{
+  // Расширения, которые VS Code предложит установить —
+  // с ними работать с проектом удобнее
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "ms-azuretools.vscode-docker"
+  ]
+}

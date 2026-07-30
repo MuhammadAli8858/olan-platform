@@ -1,0 +1,118 @@
+# ══════════════════════════════════════════════════════════════════
+# ЗАПУСК ВСЕЙ ПЛАТФОРМЫ НА ВАШЕМ СЕРВЕРЕ
+#
+#   1. cp .env.example .env    и впишите свой домен и пароли
+#   2. docker compose up -d --build
+#   3. ./deploy/ssl-setup.sh   — выпустить бесплатные SSL-сертификаты
+#
+# Что запускается:
+#   server        — API и онлайн-чат (внутри сети, наружу через nginx)
+#   site          — главный сайт для клиентов
+#   portal        — кабинеты операторов и менеджеров
+#   admin         — админ-панель
+#   nginx         — принимает весь трафик, раздаёт по доменам, держит HTTPS
+#   certbot       — автоматически продлевает сертификаты
+# ══════════════════════════════════════════════════════════════════
+
+services:
+  # ─── Сервер: API, чат, база ───────────────────────────────────
+  server:
+    build: ./server
+    container_name: olan-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      TRANSLATE_PROVIDER: ${TRANSLATE_PROVIDER:-none}
+      TRANSLATE_API_KEY: ${TRANSLATE_API_KEY:-}
+      LIBRETRANSLATE_URL: ${LIBRETRANSLATE_URL:-http://libretranslate:5000}
+    volumes:
+      # база и загруженные логотипы живут на диске сервера,
+      # поэтому переживают перезапуск и пересборку
+      - ./data/db:/app/data
+      - ./data/uploads:/app/uploads
+    networks: [olan]
+
+  # ─── Главный сайт ─────────────────────────────────────────────
+  site:
+    build:
+      context: ./site-client
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: olan-site
+    restart: unless-stopped
+    networks: [olan]
+
+  # ─── Кабинеты операторов и менеджеров ─────────────────────────
+  portal:
+    build:
+      context: ./portal-staff
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: olan-portal
+    restart: unless-stopped
+    networks: [olan]
+
+  # ─── Админ-панель ─────────────────────────────────────────────
+  admin:
+    build:
+      context: ./admin-panel
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: olan-admin
+    restart: unless-stopped
+    networks: [olan]
+
+  # ─── Nginx: принимает трафик и раздаёт по доменам ─────────────
+  nginx:
+    image: nginx:alpine
+    container_name: olan-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx:/etc/nginx/templates:ro
+      - ./data/certbot/conf:/etc/letsencrypt:ro
+      - ./data/certbot/www:/var/www/certbot:ro
+    environment:
+      DOMAIN: ${DOMAIN}
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+      # подставлять ТОЛЬКО домены, чтобы не трогать переменные nginx
+      # ($host, $remote_addr и другие должны остаться как есть)
+      NGINX_ENVSUBST_FILTER: "^(DOMAIN|PORTAL_DOMAIN|ADMIN_DOMAIN|API_DOMAIN)$$"
+    depends_on: [server, site, portal, admin]
+    networks: [olan]
+
+  # ─── Автопродление SSL-сертификатов ───────────────────────────
+  certbot:
+    image: certbot/certbot
+    container_name: olan-certbot
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    # проверяет раз в 12 часов, продлевает при необходимости
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done;'
+
+  # ─── Бесплатный переводчик (по желанию) ───────────────────────
+  # Раскомментируйте, если хотите автоперевод сайта без платных ключей.
+  # В .env поставьте TRANSLATE_PROVIDER=libre
+  #
+  # libretranslate:
+  #   image: libretranslate/libretranslate
+  #   container_name: olan-translate
+  #   restart: unless-stopped
+  #   environment:
+  #     LT_LOAD_ONLY: "ru,en,uk,de,zh,ar"   # какие языки загрузить
+  #   networks: [olan]
+
+networks:
+  olan:
+    driver: bridge

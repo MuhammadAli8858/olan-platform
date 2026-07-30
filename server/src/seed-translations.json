@@ -1,0 +1,252 @@
+{
+ "hero": {
+  "badge": {
+   "uz": "Yo'l harakatini intellektual nazorat qilish",
+   "en": "Intelligent traffic enforcement",
+   "zh": "智能交通执法系统",
+   "de": "Intelligente Verkehrsüberwachung",
+   "be": "Інтэлектуальны кантроль дарожнага руху",
+   "ar": "المراقبة الذكية لحركة المرور",
+   "kk": "Жол қозғалысын интеллектуалды бақылау",
+   "uk": "Інтелектуальний контроль дорожнього руху"
+  },
+  "titleLine1": {
+   "uz": "Qanday xavfsizlik",
+   "en": "What road safety",
+   "zh": "您面临哪些",
+   "de": "Vor welchem",
+   "be": "З якой праблемай",
+   "ar": "ما مشكلة",
+   "kk": "Қандай қауіпсіздік",
+   "uk": "З якою проблемою"
+  },
+  "titleAccent": {
+   "uz": "muammosiga",
+   "en": "problem",
+   "zh": "安全问题",
+   "de": "Sicherheitsproblem",
+   "be": "бяспекі",
+   "ar": "السلامة",
+   "kk": "мәселесіне",
+   "uk": "безпеки"
+  },
+  "titleLine3": {
+   "uz": "duch keldingiz?",
+   "en": "are you facing?",
+   "zh": "需要解决？",
+   "de": "stehen Sie?",
+   "be": "вы сутыкнуліся?",
+   "ar": "التي تواجهها؟",
+   "kk": "тап болдыңыз?",
+   "uk": "ви зіткнулися?"
+  },
+  "lead": {
+   "uz": "Vazifangizni tanlang — bizda MDH mamlakatlarida 12 yillik joriy etish tajribasi bilan tasdiqlangan davlat darajasidagi yechim bor.",
+   "en": "Choose your challenge — we have a proven government-grade solution backed by 12 years of deployments across the CIS.",
+   "zh": "请选择您面临的问题——我们拥有政府级解决方案，并有12年在独联体国家的实施经验。",
+   "de": "Wählen Sie Ihre Herausforderung — wir bieten eine bewährte Lösung auf Behördenniveau, gestützt auf 12 Jahre Erfahrung in den GUS-Staaten.",
+   "be": "Абярыце вашу задачу — у нас ёсць правераннае рашэнне дзяржаўнага класа, падмацаванае 12-гадовым вопытам укаранення ў краінах СНД.",
+   "ar": "اختر التحدي الذي تواجهه — لدينا حل بمستوى حكومي مثبت، مدعوم بخبرة 12 عاماً في دول رابطة الدول المستقلة.",
+   "kk": "Міндетіңізді таңдаңыз — бізде ТМД елдерінде 12 жылдық енгізу тәжірибесімен расталған мемлекеттік деңгейдегі шешім бар.",
+   "uk": "Оберіть ваше завдання — у нас є перевірене рішення державного класу, підкріплене 12-річним досвідом упровадження в країнах СНД."
+  }
+ },
+ "company_about": {
+  "uz": "Davlat darajasidagi yo'l harakatini nazorat qilish intellektual tizimlari. Davlat buyurtmachilari va butun dunyo xususiy tadbirkorlari bilan ishlaymiz.",
+  "en": "Government-grade intelligent traffic enforcement systems. We work with public authorities and private businesses worldwide.",
+  "zh": "政府级智能交通执法系统。我们服务于全球的政府机构与私营企业。",
+  "de": "Intelligente Verkehrsüberwachungssysteme auf Behördenniveau. Wir arbeiten mit öffentlichen Auftraggebern und privaten Unternehmen weltweit.",
+  "be": "Інтэлектуальныя сістэмы кантролю дарожнага руху дзяржаўнага класа. Працуем з дзяржаўнымі заказчыкамі і прыватнымі прадпрымальнікамі па ўсім свеце.",
+  "ar": "أنظمة ذكية لمراقبة حركة المرور بمستوى حكومي. نعمل مع الجهات الحكومية والشركات الخاصة حول العالم.",
+  "kk": "Мемлекеттік деңгейдегі жол қозғалысын бақылаудың интеллектуалды жүйелері. Мемлекеттік тапсырыс берушілермен және әлемнің жеке кәсіпкерлерімен жұмыс істейміз.",
+  "uk": "Інтелектуальні системи контролю дорожнього руху державного класу. Працюємо з державними замовниками та приватними підприємцями з усього світу."
+ },
+ "company_status": {
+  "uz": "Davlat buyurtmalari va xususiy sektor · MDH 6 davlati · 24/7 qo'llab-quvvatlash",
+  "en": "Government contracts and private sector · 6 CIS countries · 24/7 support",
+  "zh": "政府采购与私营领域 · 独联体6国 · 7×24支持",
+  "de": "Öffentliche Aufträge und Privatwirtschaft · 6 GUS-Staaten · 24/7 Support",
+  "be": "Дзяржзаказы і прыватны сектар · 6 краін СНД · падтрымка 24/7",
+  "ar": "عقود حكومية وقطاع خاص · 6 دول من الرابطة · دعم 24/7",
+  "kk": "Мемлекеттік тапсырыстар және жеке сектор · ТМД 6 елі · 24/7 қолдау",
+  "uk": "Держзамовлення та приватний сектор · 6 країн СНД · підтримка 24/7"
+ },
+ "problems": {
+  "SPD-01": {
+   "t": {
+    "uz": "Haydovchilar yo'llaringizda tezlikni oshirmoqda",
+    "en": "Drivers are speeding on your roads",
+    "zh": "驾驶员在您的道路上超速行驶",
+    "de": "Fahrer überschreiten auf Ihren Straßen die Geschwindigkeit",
+    "be": "Кіроўцы перавышаюць хуткасць на вашых дарогах",
+    "ar": "السائقون يتجاوزون السرعة على طرقكم",
+    "kk": "Жүргізушілер жолдарыңызда жылдамдықты асырады",
+    "uk": "Водії перевищують швидкість на ваших дорогах"
+   },
+   "s": {
+    "uz": "Tezlik rejimi buzilishi tufayli kundalik avariyalar fuqarolarni xavf ostiga qo'yadi.",
+    "en": "Daily crashes caused by speeding put citizens at risk.",
+    "zh": "因超速导致的日常事故正危及市民安全。",
+    "de": "Tägliche Unfälle durch Geschwindigkeitsverstöße gefährden Ihre Bürger.",
+    "be": "Штодзённыя аварыі з-за парушэнняў хуткаснага рэжыму падвяргаюць грамадзян небяспецы.",
+    "ar": "الحوادث اليومية الناتجة عن تجاوز السرعة تعرّض المواطنين للخطر.",
+    "kk": "Жылдамдық режимін бұзудан болатын күнделікті апаттар азаматтарды қауіпке ұшыратады.",
+    "uk": "Щоденні аварії через порушення швидкісного режиму наражають громадян на небезпеку."
+   }
+  },
+  "RLV-02": {
+   "t": {
+    "uz": "Chorrahalarda qizil chiroqda o'tish",
+    "en": "Red light violations at intersections",
+    "zh": "路口闯红灯行为",
+    "de": "Rotlichtverstöße an Kreuzungen",
+    "be": "Праезд на чырвонае святло на скрыжаваннях",
+    "ar": "تجاوز الإشارة الحمراء عند التقاطعات",
+    "kk": "Қиылыстарда қызыл шамнан өту",
+    "uk": "Проїзд на червоне світло на перехрестях"
+   },
+   "s": {
+    "uz": "Svetofor signallarini e'tiborsiz qoldirish tufayli xavfli vaziyatlar va to'qnashuvlar.",
+    "en": "Dangerous situations and collisions caused by ignoring traffic signals.",
+    "zh": "无视信号灯造成的危险状况与碰撞事故。",
+    "de": "Gefährliche Situationen und Kollisionen durch Missachtung der Ampelsignale.",
+    "be": "Небяспечныя сітуацыі і сутыкненні з-за ігнаравання сігналаў святлафора.",
+    "ar": "مواقف خطرة وحوادث تصادم بسبب تجاهل إشارات المرور.",
+    "kk": "Бағдаршам белгілерін елемеуден туындайтын қауіпті жағдайлар мен соқтығысулар.",
+    "uk": "Небезпечні ситуації та зіткнення через ігнорування сигналів світлофора."
+   }
+  },
+  "PRK-03": {
+   "t": {
+    "uz": "Noqonuniy to'xtash harakatni to'sib qo'yadi",
+    "en": "Illegal parking blocks traffic",
+    "zh": "违章停车阻塞交通",
+    "de": "Illegales Parken blockiert den Verkehr",
+    "be": "Незаконная паркоўка блакіруе рух",
+    "ar": "الوقوف المخالف يعرقل حركة السير",
+    "kk": "Заңсыз тұрақ қозғалысты бөгейді",
+    "uk": "Незаконне паркування блокує рух"
+   },
+   "s": {
+    "uz": "Shahar markazidagi tartibsiz to'xtash tirbandlik va xavfsizlikka tahdid tug'diradi.",
+    "en": "Chaotic parking in the city centre creates congestion and safety risks.",
+    "zh": "市中心的无序停车造成拥堵与安全隐患。",
+    "de": "Chaotisches Parken im Stadtzentrum verursacht Staus und Sicherheitsrisiken.",
+    "be": "Хаатычная паркоўка ў цэнтры горада стварае заторы і пагрозу бяспецы.",
+    "ar": "الوقوف العشوائي في مركز المدينة يسبب الازدحام ويهدد السلامة.",
+    "kk": "Қала орталығындағы ретсіз тұрақ кептеліс пен қауіпсіздікке қатер тудырады.",
+    "uk": "Хаотичне паркування в центрі міста створює затори та загрозу безпеці."
+   }
+  },
+  "STP-04": {
+   "t": {
+    "uz": "Avtomobillar «To'xtash taqiqlangan» belgisi ostida to'xtaydi",
+    "en": "Cars stop under No-Stopping signs",
+    "zh": "车辆在禁止停车标志下停靠",
+    "de": "Fahrzeuge halten im Halteverbot",
+    "be": "Аўтамабілі спыняюцца пад знакам «Прыпынак забаронены»",
+    "ar": "مركبات تتوقف تحت علامة ممنوع الوقوف",
+    "kk": "Көліктер «Тоқтауға тыйым салынған» белгісі астында тоқтайды",
+    "uk": "Автомобілі зупиняються під знаком «Зупинку заборонено»"
+   },
+   "s": {
+    "uz": "To'silgan yo'llar va avtobus yo'laklari jamoat transporti ishini buzadi.",
+    "en": "Blocked roads and bus lanes disrupt public transport.",
+    "zh": "被占用的道路与公交专用道扰乱了公共交通运行。",
+    "de": "Blockierte Straßen und Busspuren stören den öffentlichen Nahverkehr.",
+    "be": "Заблакаваныя дарогі і паласы для аўтобусаў парушаюць працу грамадскага транспарту.",
+    "ar": "الطرق والمسارات المخصصة للحافلات المعطّلة تربك النقل العام.",
+    "kk": "Бөгелген жолдар мен автобус жолақтары қоғамдық көлік жұмысын бұзады.",
+    "uk": "Заблоковані дороги та смуги для автобусів порушують роботу громадського транспорту."
+   }
+  },
+  "BUS-05": {
+   "t": {
+    "uz": "Xususiy avtomobillar jamoat transporti yo'lagini egallaydi",
+    "en": "Private cars occupy the bus lane",
+    "zh": "私家车占用公交专用道",
+    "de": "Privatfahrzeuge blockieren die Busspur",
+    "be": "Прыватныя аўтамабілі займаюць паласу грамадскага транспарту",
+    "ar": "سيارات خاصة تحتل مسار الحافلات",
+    "kk": "Жеке көліктер қоғамдық көлік жолағын алады",
+    "uk": "Приватні автомобілі займають смугу громадського транспорту"
+   },
+   "s": {
+    "uz": "Ajratilgan yo'lak ma'nosini yo'qotadi: avtobuslar umumiy oqimda turadi, jadval buziladi.",
+    "en": "The dedicated lane loses its purpose: buses sit in traffic and schedules collapse.",
+    "zh": "专用道形同虚设：公交车与社会车辆一同拥堵，班次时刻表被打乱。",
+    "de": "Die Busspur verliert ihren Sinn: Busse stehen im Stau, Fahrpläne brechen zusammen.",
+    "be": "Выдзеленая паласа губляе сэнс: аўтобусы стаяць у агульным патоку, расклад зрываецца.",
+    "ar": "يفقد المسار المخصص جدواه: الحافلات تقف في الزحام وتنهار الجداول الزمنية.",
+    "kk": "Бөлінген жолақ мәнін жоғалтады: автобустар жалпы ағында тұрады, кесте бұзылады.",
+    "uk": "Виділена смуга втрачає сенс: автобуси стоять у загальному потоці, розклад зривається."
+   }
+  },
+  "RWC-06": {
+   "t": {
+    "uz": "Haydovchilar taqiqlovchi signalda temir yo'l kesishmasiga chiqadi",
+    "en": "Drivers enter railway crossings against the signal",
+    "zh": "驾驶员在禁行信号下闯铁路道口",
+    "de": "Fahrer überqueren Bahnübergänge trotz Rotlicht",
+    "be": "Кіроўцы выязджаюць на чыгуначны пераезд пад забараняльны сігнал",
+    "ar": "سائقون يعبرون المزلقان رغم الإشارة الحمراء",
+    "kk": "Жүргізушілер тыйым салатын белгіде теміржол өтпесіне шығады",
+    "uk": "Водії виїжджають на залізничний переїзд під заборонний сигнал"
+   },
+   "s": {
+    "uz": "Poyezd bilan to'qnashuv deyarli har doim odam o'limi bilan tugaydi. Tarkib tormoz yo'li — bir kilometrgacha.",
+    "en": "A collision with a train is almost always fatal. A freight train needs up to a kilometre to stop.",
+    "zh": "与列车相撞几乎必然造成人员死亡。货运列车的制动距离可达一公里。",
+    "de": "Ein Zusammenstoß mit einem Zug endet fast immer tödlich. Ein Güterzug braucht bis zu einem Kilometer Bremsweg.",
+    "be": "Сутыкненне з цягніком амаль заўсёды сканчаецца гібеллю людзей. Тармазны шлях саставу — да кіламетра.",
+    "ar": "الاصطدام بالقطار يكاد يكون قاتلاً دائماً. مسافة توقف القطار تصل إلى كيلومتر.",
+    "kk": "Пойызбен соқтығысу әрдайым дерлік адам өлімімен аяқталады. Құрамның тежеу жолы — бір километрге дейін.",
+    "uk": "Зіткнення з потягом майже завжди закінчується загибеллю людей. Гальмівний шлях составу — до кілометра."
+   }
+  },
+  "PHN-07": {
+   "t": {
+    "uz": "Haydovchilar rulda telefonda gaplashadi",
+    "en": "Drivers use phones behind the wheel",
+    "zh": "驾驶员开车时使用手机",
+    "de": "Fahrer telefonieren am Steuer",
+    "be": "Кіроўцы размаўляюць па тэлефоне за рулём",
+    "ar": "سائقون يستخدمون الهاتف أثناء القيادة",
+    "kk": "Жүргізушілер рульде телефонмен сөйлеседі",
+    "uk": "Водії розмовляють по телефону за кермом"
+   },
+   "s": {
+    "uz": "Rulda telefondan foydalanish avariya xavfini 4 barobar oshiradi. Sun'iy intellektli kameralar buni old oyna orqali qayd etadi.",
+    "en": "Using a phone while driving raises crash risk fourfold. AI cameras detect it through the windscreen.",
+    "zh": "开车使用手机使事故风险增加四倍。AI摄像机可透过挡风玻璃识别该行为。",
+    "de": "Handynutzung am Steuer vervierfacht das Unfallrisiko. KI-Kameras erkennen es durch die Windschutzscheibe.",
+    "be": "Выкарыстанне тэлефона за рулём у 4 разы павышае рызыку ДТЗ. Камеры са штучным інтэлектам фіксуюць парушэнне праз лабавое шкло.",
+    "ar": "استخدام الهاتف أثناء القيادة يضاعف خطر الحوادث أربع مرات. كاميرات الذكاء الاصطناعي ترصده عبر الزجاج الأمامي.",
+    "kk": "Рульде телефон пайдалану жол апаты қаупін 4 есе арттырады. Жасанды интеллект камералары мұны алдыңғы әйнек арқылы тіркейді.",
+    "uk": "Використання телефона за кермом у 4 рази підвищує ризик ДТП. Камери зі штучним інтелектом фіксують порушення крізь лобове скло."
+   }
+  },
+  "SBT-08": {
+   "t": {
+    "uz": "Haydovchi va yo'lovchilar xavfsizlik kamarini taqmaydi",
+    "en": "Drivers and passengers do not fasten seat belts",
+    "zh": "驾驶员与乘客不系安全带",
+    "de": "Fahrer und Beifahrer legen den Gurt nicht an",
+    "be": "Кіроўцы і пасажыры не прышпільваюць рамяні бяспекі",
+    "ar": "السائقون والركاب لا يربطون أحزمة الأمان",
+    "kk": "Жүргізушілер мен жолаушылар қауіпсіздік белдігін тақпайды",
+    "uk": "Водії та пасажири не пристібають ремені безпеки"
+   },
+   "s": {
+    "uz": "Taqilmagan kamar avariyada halok bo'lish xavfini ikki barobar oshiradi. Tizim buzilishni avtomatik aniqlaydi.",
+    "en": "An unfastened belt doubles the risk of death in a crash. The system detects it automatically at any speed.",
+    "zh": "未系安全带使事故致死风险翻倍。系统可在任意车速下自动识别。",
+    "de": "Ein nicht angelegter Gurt verdoppelt das Sterberisiko bei einem Unfall. Das System erkennt dies automatisch bei jedem Tempo.",
+    "be": "Непрышпілены рэмень падвойвае рызыку гібелі ў ДТЗ. Сістэма аўтаматычна распазнае парушэнне на любой хуткасці.",
+    "ar": "عدم ربط الحزام يضاعف خطر الوفاة في الحوادث. يرصد النظام ذلك آلياً عند أي سرعة.",
+    "kk": "Тағылмаған белдік жол апатында қаза болу қаупін екі есе арттырады. Жүйе бұзушылықты кез келген жылдамдықта автоматты түрде анықтайды.",
+    "uk": "Непристебнутий ремінь подвоює ризик загибелі в ДТП. Система автоматично розпізнає порушення на будь-якій швидкості."
+   }
+  }
+ }
+}

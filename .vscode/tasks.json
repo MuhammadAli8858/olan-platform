@@ -1,0 +1,101 @@
+{
+  // ══════════════════════════════════════════════════════════════
+  // ЗАДАЧИ ДЛЯ VS CODE
+  // Запуск: Ctrl+Shift+P → "Tasks: Run Task" → выбрать нужную
+  // Или: Терминал → Запустить задачу…
+  // ══════════════════════════════════════════════════════════════
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "1. Установить всё (один раз)",
+      "type": "shell",
+      "command": "npm install",
+      "options": { "cwd": "${workspaceFolder}/server" },
+      "dependsOn": [
+        "установка: сайт",
+        "установка: кабинеты",
+        "установка: админка"
+      ],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "установка: сайт",
+      "type": "shell",
+      "command": "npm install",
+      "options": { "cwd": "${workspaceFolder}/site-client" },
+      "problemMatcher": []
+    },
+    {
+      "label": "установка: кабинеты",
+      "type": "shell",
+      "command": "npm install",
+      "options": { "cwd": "${workspaceFolder}/portal-staff" },
+      "problemMatcher": []
+    },
+    {
+      "label": "установка: админка",
+      "type": "shell",
+      "command": "npm install",
+      "options": { "cwd": "${workspaceFolder}/admin-panel" },
+      "problemMatcher": []
+    },
+
+    {
+      "label": "2. ЗАПУСТИТЬ ВСЁ",
+      "dependsOn": [
+        "▶ Сервер (:4000)",
+        "▶ Главный сайт (:5173)",
+        "▶ Кабинеты (:5174)",
+        "▶ Админ-панель (:5175)"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "▶ Сервер (:4000)",
+      "type": "shell",
+      "command": "npm start",
+      "options": { "cwd": "${workspaceFolder}/server" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "group": "olan", "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "▶ Главный сайт (:5173)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/site-client" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "group": "olan", "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "▶ Кабинеты (:5174)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/portal-staff" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "group": "olan", "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "▶ Админ-панель (:5175)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/admin-panel" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "group": "olan", "reveal": "always", "panel": "dedicated" }
+    },
+
+    {
+      "label": "3. Собрать для публикации",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "cwd": "${workspaceFolder}/site-client" },
+      "problemMatcher": []
+    }
+  ]
+}

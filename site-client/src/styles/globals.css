@@ -1,0 +1,148 @@
+/* ─── OLAN HIGH TECH — design tokens, themes & signature effects ─── */
+
+/* ТЁМНАЯ ТЕМА (по умолчанию) */
+:root, [data-theme="dark"] {
+  --void: #05090f;
+  --panel: #0b1420;
+  --panel-2: #0e1a2b;
+  --panel-hover: #122238;
+  --line: rgba(140, 175, 220, 0.12);
+  --line-soft: rgba(140, 175, 220, 0.07);
+  --orange: #ff7a1a;
+  --orange-dim: rgba(255, 122, 26, 0.14);
+  --orange-border: rgba(255, 122, 26, 0.4);
+  --cyan: #41d9e8;
+  --cyan-dim: rgba(65, 217, 232, 0.08);
+  --cyan-border: rgba(65, 217, 232, 0.28);
+  --hud: rgba(65, 217, 232, 0.45);
+  --red: #ff4d4f;
+  --red-dim: rgba(255, 77, 79, 0.1);
+  --red-border: rgba(255, 77, 79, 0.32);
+  --green: #3ddc84;
+  --txt: rgba(234, 242, 252, 0.94);
+  --txt-2: rgba(198, 214, 236, 0.58);
+  --txt-3: rgba(178, 198, 226, 0.34);
+  --header-bg: rgba(5, 9, 15, 0.92);
+  --ghost-bg: rgba(14, 26, 43, 0.5);
+  --input-bg: rgba(255, 255, 255, 0.04);
+  --chip-bg: rgba(255, 255, 255, 0.02);
+  --r-lg: 22px;
+  --r-md: 16px;
+  --r-sm: 12px;
+  --card-shadow: 0 0 0 rgba(0,0,0,0);
+  --btn-glow: 0 8px 24px rgba(255, 122, 26, 0.35);
+  --map-land: #101d30;
+  --map-stroke: rgba(140, 175, 220, 0.2);
+  --map-cis: rgba(65, 217, 232, 0.4);
+  --map-cis-hover: rgba(65, 217, 232, 0.6);
+}
+
+/* СВЕТЛАЯ ТЕМА */
+[data-theme="light"] {
+  --void: #f1f5fa;
+  --panel: #ffffff;
+  --panel-2: #f8fbff;
+  --panel-hover: #edf3fb;
+  --line: rgba(12, 42, 86, 0.16);
+  --line-soft: rgba(12, 42, 86, 0.08);
+  --orange: #e05f00;
+  --orange-dim: rgba(224, 95, 0, 0.1);
+  --orange-border: rgba(224, 95, 0, 0.4);
+  --cyan: #0d7fa2;
+  --cyan-dim: rgba(13, 127, 162, 0.08);
+  --cyan-border: rgba(13, 127, 162, 0.32);
+  --hud: rgba(13, 127, 162, 0.55);
+  --red: #d92d30;
+  --red-dim: rgba(217, 45, 48, 0.08);
+  --red-border: rgba(217, 45, 48, 0.35);
+  --green: #128a54;
+  --txt: #0b1b2e;
+  --txt-2: rgba(18, 40, 72, 0.68);
+  --txt-3: rgba(18, 40, 72, 0.44);
+  --header-bg: rgba(255, 255, 255, 0.92);
+  --ghost-bg: rgba(255, 255, 255, 0.65);
+  --input-bg: rgba(12, 42, 86, 0.05);
+  --card-shadow: 0 14px 34px rgba(18, 55, 110, 0.10);
+  --btn-glow: 0 10px 26px rgba(224, 95, 0, 0.30);
+  --map-land: #dbe6f3;
+  --map-stroke: rgba(12, 42, 86, 0.28);
+  --map-cis: rgba(13, 127, 162, 0.5);
+  --map-cis-hover: rgba(13, 127, 162, 0.7);
+}
+
+/* Консоль мониторинга всегда остаётся тёмным «экраном» в обеих темах */
+.force-dark {
+  --void: #05090f;
+  --panel: #0b1420;
+  --panel-2: #0e1a2b;
+  --line: rgba(140, 175, 220, 0.12);
+  --line-soft: rgba(140, 175, 220, 0.07);
+  --orange: #ff7a1a;
+  --cyan: #41d9e8;
+  --hud: rgba(65, 217, 232, 0.45);
+  --red: #ff4d4f;
+  --green: #3ddc84;
+  --txt: rgba(234, 242, 252, 0.94);
+  --txt-2: rgba(198, 214, 236, 0.58);
+  --txt-3: rgba(178, 198, 226, 0.34);
+  --chip-bg: rgba(255, 255, 255, 0.02);
+  --input-bg: rgba(255, 255, 255, 0.04);
+  --card-shadow: 0 0 0 rgba(0,0,0,0);
+}
+
+/* Кроссплатформенность: запрет случайного горизонтального скролла */
+html, body { overflow-x: clip; }
+
+/* Плавный тап на мобильных без синей подсветки */
+* { -webkit-tap-highlight-color: transparent; }
+
+.font-display { font-family: 'Barlow Condensed', sans-serif; }
+.font-tele { font-family: 'JetBrains Mono', monospace; }
+
+input::placeholder, textarea::placeholder { color: var(--txt-3); }
+
+/* fine engineering grid */
+.tech-grid {
+  background-image:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* HUD viewfinder corner brackets */
+.hud { position: relative; }
+.hud::before, .hud::after {
+  content: "";
+  position: absolute;
+  width: 22px; height: 22px;
+  border-color: var(--hud);
+  transition: border-color .25s ease, opacity .25s ease;
+  pointer-events: none;
+}
+.hud::before { top: -1px; left: -1px; border-top: 2px solid; border-left: 2px solid; border-top-left-radius: var(--hud-r, var(--r-lg)); }
+.hud::after  { bottom: -1px; right: -1px; border-bottom: 2px solid; border-right: 2px solid; border-bottom-right-radius: var(--hud-r, var(--r-lg)); }
+.hud:hover::before, .hud:hover::after { border-color: var(--orange); }
+
+/* animations */
+@keyframes sweep { to { transform: rotate(360deg); } }
+@keyframes blip { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
+@keyframes feed-in { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: none; } }
+@keyframes scanline { 0% { top: -30%; } 100% { top: 130%; } }
+@keyframes marker-pulse {
+  0% { r: 4; opacity: 0.8; }
+  70% { r: 11; opacity: 0; }
+  100% { r: 11; opacity: 0; }
+}
+.map-pulse { animation: marker-pulse 2.4s ease-out infinite; }
+
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+.animate-feed-in { animation: feed-in .4s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}

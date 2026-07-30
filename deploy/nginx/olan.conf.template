@@ -1,0 +1,129 @@
+# ══════════════════════════════════════════════════════════════════
+# NGINX — распределение трафика по вашим доменам
+#
+# Этот файл — шаблон: вместо ${DOMAIN} и других переменных nginx сам
+# подставит значения из .env при запуске контейнера.
+#
+#   olanhightech.com         → главный сайт
+#   portal.olanhightech.com  → кабинеты операторов и менеджеров
+#   admin.olanhightech.com   → админ-панель
+#   api.olanhightech.com     → сервер: API и онлайн-чат (WebSocket)
+# ══════════════════════════════════════════════════════════════════
+
+# ─── Общие настройки ──────────────────────────────────────────────
+# Нужно, чтобы работал WebSocket (онлайн-чат)
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ''      close;
+}
+
+# ─── HTTP: проверка сертификата и переход на HTTPS ────────────────
+server {
+  listen 80;
+  server_name ${DOMAIN} www.${DOMAIN} ${PORTAL_DOMAIN} ${ADMIN_DOMAIN} ${API_DOMAIN};
+
+  # сюда Let's Encrypt кладёт файл для подтверждения домена
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  # всё остальное — на защищённое соединение
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════
+# ГЛАВНЫЙ САЙТ
+# ══════════════════════════════════════════════════════════════════
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name ${DOMAIN} www.${DOMAIN};
+
+  ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  include /etc/nginx/templates/ssl-params.inc;
+
+  location / {
+    proxy_pass http://site:80;
+    include /etc/nginx/templates/proxy-params.inc;
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════
+# КАБИНЕТЫ ОПЕРАТОРОВ И МЕНЕДЖЕРОВ
+# ══════════════════════════════════════════════════════════════════
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name ${PORTAL_DOMAIN};
+
+  ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  include /etc/nginx/templates/ssl-params.inc;
+
+  location / {
+    proxy_pass http://portal:80;
+    include /etc/nginx/templates/proxy-params.inc;
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════
+# АДМИН-ПАНЕЛЬ
+# ══════════════════════════════════════════════════════════════════
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name ${ADMIN_DOMAIN};
+
+  ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  include /etc/nginx/templates/ssl-params.inc;
+
+  # Можно ограничить вход в админку по IP офиса — раскомментируйте:
+  # allow 203.0.113.0/24;
+  # deny all;
+
+  location / {
+    proxy_pass http://admin:80;
+    include /etc/nginx/templates/proxy-params.inc;
+  }
+}
+
+# ══════════════════════════════════════════════════════════════════
+# СЕРВЕР: API И ОНЛАЙН-ЧАТ
+# ══════════════════════════════════════════════════════════════════
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name ${API_DOMAIN};
+
+  ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  include /etc/nginx/templates/ssl-params.inc;
+
+  # логотипы партнёров и другие загруженные картинки
+  client_max_body_size 8M;
+
+  # ─── Онлайн-чат (WebSocket) ───
+  location /socket.io/ {
+    proxy_pass http://server:4000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    # чат держит соединение открытым — не обрывать по таймауту
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+  }
+
+  # ─── Всё остальное: API и файлы ───
+  location / {
+    proxy_pass http://server:4000;
+    include /etc/nginx/templates/proxy-params.inc;
+  }
+}

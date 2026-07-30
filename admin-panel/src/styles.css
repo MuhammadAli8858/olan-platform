@@ -1,0 +1,110 @@
+/* ══════════════════════════════════════════════════════════════════
+   СТИЛИ КАБИНЕТОВ (оператор и менеджер)
+   Оформление в том же тёмном «техно» стиле, что и главный сайт.
+   ══════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --void: #05090f;
+  --panel: #0b1420;
+  --panel-2: #0e1a2b;
+  --panel-3: #122238;
+  --line: rgba(140, 175, 220, 0.14);
+  --line-soft: rgba(140, 175, 220, 0.08);
+  --orange: #ff7a1a;
+  --cyan: #41d9e8;
+  --red: #ff4d4f;
+  --green: #3ddc84;
+  --txt: rgba(234, 242, 252, 0.94);
+  --txt-2: rgba(198, 214, 236, 0.6);
+  --txt-3: rgba(178, 198, 226, 0.36);
+  --r: 16px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  margin: 0;
+  background: var(--void);
+  color: var(--txt);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+}
+
+.display { font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: 0.04em; }
+.tele { font-family: 'JetBrains Mono', monospace; }
+
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; }
+
+/* ─── Общие элементы ─── */
+.card {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 11px 20px; border-radius: 999px; border: none;
+  background: var(--orange); color: #160a00;
+  font-size: 13px; font-weight: 600;
+  transition: filter .15s ease;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent; border: 1px solid var(--line); color: var(--txt-2);
+}
+.btn-ghost:hover { border-color: var(--cyan); color: var(--cyan); filter: none; }
+
+.btn-danger { background: transparent; border: 1px solid rgba(255,77,79,.4); color: var(--red); }
+.btn-danger:hover { background: rgba(255,77,79,.1); filter: none; }
+
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+
+.input {
+  width: 100%; padding: 11px 14px; border-radius: 12px;
+  background: rgba(255,255,255,.04); border: 1px solid var(--line);
+  color: var(--txt); font-size: 13px; outline: none;
+  transition: border-color .15s ease;
+}
+.input:focus { border-color: var(--cyan); }
+.input::placeholder { color: var(--txt-3); }
+
+.label {
+  display: block; margin-bottom: 6px;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--txt-3); font-family: 'JetBrains Mono', monospace;
+}
+
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+}
+.badge-green { background: rgba(61,220,132,.12); color: var(--green); border: 1px solid rgba(61,220,132,.3); }
+.badge-grey  { background: rgba(255,255,255,.04); color: var(--txt-3); border: 1px solid var(--line); }
+.badge-orange{ background: rgba(255,122,26,.12); color: var(--orange); border: 1px solid rgba(255,122,26,.3); }
+.badge-red   { background: rgba(255,77,79,.12); color: var(--red); border: 1px solid rgba(255,77,79,.3); }
+
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+.dot-live { animation: pulse 1.8s infinite; }
+
+.error-box {
+  padding: 10px 14px; border-radius: 12px; font-size: 13px;
+  background: rgba(255,77,79,.1); border: 1px solid rgba(255,77,79,.3); color: var(--red);
+}
+
+/* ─── Прокрутка ─── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(140,175,220,.18); border-radius: 4px; }
+
+/* ─── Мобильная адаптация ─── */
+@media (max-width: 860px) {
+  .hide-mobile { display: none !important; }
+}

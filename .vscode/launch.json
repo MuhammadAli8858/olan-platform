@@ -1,0 +1,19 @@
+{
+  // ══════════════════════════════════════════════════════════════
+  // ОТЛАДКА СЕРВЕРА
+  // Нажмите F5 — сервер запустится в режиме отладки,
+  // можно ставить точки останова прямо в коде.
+  // ══════════════════════════════════════════════════════════════
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Отладка сервера",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/src/index.js",
+      "cwd": "${workspaceFolder}/server",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
