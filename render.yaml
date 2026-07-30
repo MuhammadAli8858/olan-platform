@@ -1,0 +1,62 @@
+# ══════════════════════════════════════════════════════════════════
+# ЗАПУСК СЕРВЕРА НА RENDER.COM
+#
+# Самый быстрый способ поднять сервер, если своего VPS ещё нет.
+# Render умеет WebSocket (нужен для чата) и даёт бесплатный HTTPS.
+#
+# КАК ПОЛЬЗОВАТЬСЯ:
+#  1. Зайдите на render.com → войдите через GitHub
+#  2. New → Blueprint → выберите репозиторий olan-platform
+#     (Render сам найдёт этот файл и всё настроит)
+#  3. Заполните пароли, которые он спросит (см. ниже)
+#  4. Apply → через 3-5 минут получите адрес вида
+#     https://olan-server.onrender.com
+#
+# ⚠️ ВАЖНО ПРО БЕСПЛАТНЫЙ ТАРИФ:
+#   • сервер «засыпает» после 15 минут без обращений,
+#     первый запрос после сна идёт ~30 секунд;
+#   • диск НЕ сохраняется: при перезапуске база (сотрудники,
+#     переписка, заявки) обнуляется.
+#   Для рабочей платформы включите платный диск (блок disk ниже)
+#   или разместите сервер на своём VPS — см. DEPLOY.md
+# ══════════════════════════════════════════════════════════════════
+
+services:
+  - type: web
+    name: olan-server
+    runtime: node
+    plan: free                # для рабочей версии: starter
+    rootDir: server           # сервер лежит в этой папке
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # ─── Вход в админ-панель ───
+      - key: ADMIN_EMAIL
+        value: admin@olanhightech.com
+      - key: ADMIN_PASSWORD
+        sync: false           # Render спросит значение при создании
+      - key: JWT_SECRET
+        generateValue: true   # Render создаст случайный ключ сам
+
+      # ─── Кому разрешено обращаться к серверу ───
+      # ⚠️ Впишите адреса своих сайтов на Netlify через запятую!
+      - key: ALLOWED_ORIGINS
+        sync: false
+
+      # ─── Автоматический перевод сайта ───
+      - key: TRANSLATE_PROVIDER
+        value: google-free
+
+    # ─── Постоянный диск (платно, ~$0.25/ГБ в месяц) ───
+    # Без него база обнуляется при каждом перезапуске.
+    # Раскомментируйте для рабочей версии:
+    #
+    # disk:
+    #   name: olan-data
+    #   mountPath: /opt/render/project/src/server/data
+    #   sizeGB: 1
