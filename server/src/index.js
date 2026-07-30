@@ -41,7 +41,17 @@ app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);                       // curl, мобильные приложения
     if (process.env.NODE_ENV !== "production") return cb(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+
+    // сравниваем без учёта слэша на конце и регистра —
+    // так опечатка в настройках не ломает работу сайтов
+    const clean = origin.replace(/\/+$/, "").toLowerCase();
+    if (ALLOWED_ORIGINS.includes(clean)) return cb(null, true);
+
+    console.warn(
+      `[CORS] отклонён источник: ${origin}\n` +
+      `       разрешены: ${ALLOWED_ORIGINS.join(", ") || "(список пуст!)"}\n` +
+      `       добавьте адрес в переменную ALLOWED_ORIGINS`
+    );
     cb(new Error("Источник не разрешён: " + origin));
   },
   credentials: true,

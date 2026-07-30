@@ -35,7 +35,15 @@ export const ALLOWED_ORIGINS = (
     "http://localhost:5174", // кабинеты операторов и менеджеров
     "http://localhost:5175", // админ-панель
   ].join(",")
-).split(",").map((s) => s.trim()).filter(Boolean);
+)
+  .split(",")
+  .map((s) =>
+    s
+      .trim()
+      .replace(/\/+$/, "")   // убираем слэш на конце: браузер его не присылает
+      .toLowerCase()
+  )
+  .filter(Boolean);
 
 // ══════════════════════════════════════════════════════════════════
 // АВТОМАТИЧЕСКИЙ ПЕРЕВОД
