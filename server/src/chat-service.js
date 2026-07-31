@@ -97,15 +97,23 @@ export function pickOperator() {
  * Нужно, чтобы заявка с формы попала тому же человеку, с кем клиент
  * до этого переписывался в чате (и наоборот). Узнаём клиента двумя
  * способами: по номеру сессии браузера и по электронной почте.
+ *
+ * ВАЖНО: возвращаем такого оператора, ТОЛЬКО если он сейчас на смене.
+ * Иначе обращение зависнет у того, кого нет в кабинете, — а клиент
+ * будет ждать ответа. Если «свой» оператор не на смене, вызывающий
+ * код отдаст обращение свободному оператору из тех, кто на смене.
  */
 export function findOperatorForVisitor({ sessionId, email }) {
   const data = db.read();
   const mail = String(email || "").trim().toLowerCase();
-  const exists = (id) => id && data.operators.some((o) => o.id === id);
+
+  // оператор подходит, только если существует И сейчас на смене
+  const available = (id) =>
+    id && data.operators.some((o) => o.id === id) && isOperatorOnline(id);
 
   // 1. По номеру сессии — самый надёжный признак того же посетителя
   if (sessionId) {
-    const chat = data.chats.find((c) => c.sessionId === sessionId && exists(c.operatorId));
+    const chat = data.chats.find((c) => c.sessionId === sessionId && available(c.operatorId));
     if (chat) return chat.operatorId;
   }
 
@@ -113,12 +121,12 @@ export function findOperatorForVisitor({ sessionId, email }) {
   if (mail) {
     const chat = [...data.chats]
       .reverse()
-      .find((c) => String(c.visitor?.email || "").toLowerCase() === mail && exists(c.operatorId));
+      .find((c) => String(c.visitor?.email || "").toLowerCase() === mail && available(c.operatorId));
     if (chat) return chat.operatorId;
 
     const lead = [...data.leads]
       .reverse()
-      .find((l) => String(l.email || "").toLowerCase() === mail && exists(l.operatorId));
+      .find((l) => String(l.email || "").toLowerCase() === mail && available(l.operatorId));
     if (lead) return lead.operatorId;
   }
 
@@ -126,13 +134,26 @@ export function findOperatorForVisitor({ sessionId, email }) {
 }
 
 /**
- * Раздать обращения, которые ждали оператора.
+ * Раздать обращения тем, кто сейчас на смене.
  *
- * Вызывается, когда оператор выходит на смену. Если пока никого
- * не было в кабинете, диалоги и заявки копились без исполнителя —
- * теперь они распределяются между теми, кто сейчас на смене.
+ * Вызывается, когда оператор выходит на смену, и при каждом новом
+ * обращении. Делает две вещи:
  *
- * Возвращает { chats, leads } — сколько чего раздано.
+ *  1. Раздаёт обращения, которые вообще никому не назначены
+ *     (пришли, когда в кабинете никого не было).
+ *
+ *  2. Забирает НЕОБРАБОТАННЫЕ обращения у операторов, которых сейчас
+ *     нет на смене, и передаёт тем, кто на смене. Это главное правило:
+ *     клиент не должен ждать ответа от человека, который ушёл домой.
+ *
+ *     Что переносится:
+ *       • заявки со статусом «новая» (никто ещё не занялся);
+ *       • диалоги, где есть непрочитанные сообщения от клиента.
+ *     Что НЕ трогаем:
+ *       • обработанные заявки — они уже в работе или закрыты;
+ *       • диалоги без новых сообщений — переписка завершена.
+ *
+ * Возвращает { chats, leads } — сколько чего передано.
  */
 export function assignPending() {
   const data = db.read();
@@ -141,25 +162,43 @@ export function assignPending() {
   );
   if (!online.length) return { chats: 0, leads: 0 };
 
-  const exists = (id) => id && data.operators.some((o) => o.id === id);
+  // оператор доступен, если существует и сейчас на смене
+  const available = (id) =>
+    id && data.operators.some((o) => o.id === id) && isOperatorOnline(id);
+
   let chats = 0;
   let leads = 0;
 
-  // сначала пробуем вернуть клиента его прежнему оператору,
-  // иначе отдаём наименее загруженному из тех, кто на смене
+  // ─── Диалоги ───
   for (const chat of data.chats) {
-    if (exists(chat.operatorId)) continue;
-    chat.operatorId =
+    if (available(chat.operatorId)) continue; // оператор на смене — не трогаем
+
+    // диалог без новых сообщений оставляем как есть: переписка закончена,
+    // а история должна храниться у того, кто её вёл
+    const waiting = (chat.unreadForOperator || 0) > 0;
+    if (chat.operatorId && !waiting) continue;
+
+    const next =
       findOperatorForVisitor({ sessionId: chat.sessionId, email: chat.visitor?.email }) ||
       pickOperator();
-    if (chat.operatorId) chats++;
+    if (next && next !== chat.operatorId) {
+      chat.operatorId = next;
+      chats++;
+    }
   }
+
+  // ─── Заявки ───
   for (const lead of data.leads) {
-    if (exists(lead.operatorId)) continue;
-    lead.operatorId =
+    if (available(lead.operatorId)) continue; // оператор на смене — не трогаем
+    if (lead.operatorId && lead.status !== "new") continue; // уже обработана
+
+    const next =
       findOperatorForVisitor({ sessionId: lead.sessionId, email: lead.email }) ||
       pickOperator();
-    if (lead.operatorId) leads++;
+    if (next && next !== lead.operatorId) {
+      lead.operatorId = next;
+      leads++;
+    }
   }
 
   if (chats || leads) db.write();
@@ -179,12 +218,16 @@ export function getOrCreateChat(sessionId, meta = {}) {
     if (chat.operatorId && !data.operators.some((o) => o.id === chat.operatorId)) {
       chat.operatorId = null;
     }
-    // оператора ещё нет (никого не было на смене) — пробуем назначить:
-    // сначала того, кто уже вёл этого клиента, иначе — свободного на смене
-    if (!chat.operatorId) {
-      chat.operatorId =
+    // Кому вести диалог дальше:
+    //  • оператор на смене — оставляем как есть, клиент продолжает с ним;
+    //  • оператора нет на смене (ушёл домой, закрыл кабинет) — передаём
+    //    тому, кто на смене, чтобы клиент не ждал ответа впустую;
+    //  • на смене никого — диалог ждёт, его раздадут при выходе на смену.
+    if (!isOperatorOnline(chat.operatorId)) {
+      const next =
         findOperatorForVisitor({ sessionId, email: meta.email || chat.visitor?.email }) ||
         pickOperator();
+      if (next) chat.operatorId = next;
     }
     // если посетитель заново заполнил анкету — обновляем данные
     if (meta.name) {

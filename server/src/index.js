@@ -105,6 +105,11 @@ app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     service: "OLAN HIGH TECH server",
+    // по этой строке видно, какая версия кода сейчас развёрнута —
+    // удобно проверять после обновления на Render
+    version: "2026.08-shift-routing",
+    // кто сейчас на смене — сразу видно, кому пойдут новые обращения
+    operatorsOnShift: chatService.getOnlineOperatorIds().length,
     time: new Date().toISOString(),
   });
 });
@@ -698,7 +703,23 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    if (role === "operator" && operatorId) chatService.setOperatorOffline(operatorId);
+    if (role !== "operator" || !operatorId) return;
+
+    chatService.setOperatorOffline(operatorId);
+
+    // Оператор ушёл со смены — его необработанные обращения
+    // передаём тем, кто остался в кабинете
+    const moved = chatService.assignPending();
+    if (moved.chats || moved.leads) {
+      console.log(
+        `  [смена] ${chatService.operatorName(operatorId)} ушёл(ла) со смены — ` +
+        `передано диалогов: ${moved.chats}, заявок: ${moved.leads}`
+      );
+      for (const id of chatService.getOnlineOperatorIds()) {
+        io.to(`op:${id}`).emit("chat:list-changed");
+        io.to(`op:${id}`).emit("leads:changed");
+      }
+    }
   });
 });
 
