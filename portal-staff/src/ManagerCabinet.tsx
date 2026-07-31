@@ -166,7 +166,7 @@ export function ManagerCabinet({ user, onLogout }: { user: User; onLogout: () =>
         </div>
 
         {/* ─── Заголовок списка ─── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>,
           <h2 className="display" style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Мои операторы</h2>
           <button className="btn btn-sm" onClick={() => setShowForm(!showForm)}>
             <UserPlus style={{ width: 14, height: 14 }} /> Создать оператора
