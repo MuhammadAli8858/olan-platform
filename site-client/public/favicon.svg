@@ -1,0 +1,5 @@
+<svg viewBox="0 0 64 64" width="64" height="64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OLAN HIGH TECH">
+  <path d="M32 4 L56 15 V36 C56 49 45 57 32 61 C19 57 8 49 8 36 V15 Z" fill="none" stroke="#F5720A" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M32 31 L46 40" stroke="#41D9E8" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="40" cy="22" r="4" fill="#F5720A"/>
+</svg>

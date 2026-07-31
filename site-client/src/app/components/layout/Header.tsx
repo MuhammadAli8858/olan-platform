@@ -6,7 +6,8 @@
 // ══════════════════════════════════════════════════════════════════
 
 import { useState } from "react";
-import { Radar, Sun, Moon, Menu, X } from "lucide-react";
+import { Sun, Moon, Menu, X } from "lucide-react";
+import { OlanLogo } from "../ui/OlanLogo";
 import type { Page, NavigateFn } from "../../types";
 import { useLang } from "../../i18n/LangContext";
 import { LangSwitcher } from "../ui/LangSwitcher";
@@ -39,9 +40,7 @@ export function Header({ page, navigate, theme, toggleTheme }: { page: Page; nav
 
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
         <button onClick={() => navigate("home")} className="flex items-center gap-3 flex-shrink-0">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--orange-dim)", border: "1px solid var(--orange-border)" }}>
-            <Radar className="w-4 h-4" style={{ color: "var(--orange)" }} />
-          </div>
+          <OlanLogo size={40} className="flex-shrink-0" title={company.name || "OLAN HIGH TECH PROJECT"} />
           <div className="text-left leading-none">
             <div className="font-display font-bold text-xs sm:text-sm tracking-[0.1em] sm:tracking-[0.12em]" style={{ color: "var(--txt)" }}>
               {company.name || "OLAN HIGH TECH PROJECT"}

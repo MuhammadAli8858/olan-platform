@@ -3,7 +3,8 @@
 // Контакты компании · список всех 8 решений · ссылки на секции
 // ══════════════════════════════════════════════════════════════════
 
-import { Radar, Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin } from "lucide-react";
+import { OlanLogo } from "../ui/OlanLogo";
 import type { NavigateFn } from "../../types";
 import { useLang } from "../../i18n/LangContext";
 
@@ -28,9 +29,7 @@ export function Footer({ navigate }: { navigate: NavigateFn }) {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
           <div className="md:col-span-5">
             <button onClick={() => navigate("home")} className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: "var(--orange-dim)", border: "1px solid var(--orange-border)" }}>
-                <Radar className="w-4 h-4" style={{ color: "var(--orange)" }} />
-              </div>
+              <OlanLogo size={40} title={company.name || "OLAN HIGH TECH PROJECT"} />
               <span className="font-display font-bold text-sm tracking-[0.12em]" style={{ color: "var(--txt)" }}>
                 {company.name || "OLAN HIGH TECH PROJECT"}
               </span>
