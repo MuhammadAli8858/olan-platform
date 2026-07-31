@@ -38,17 +38,31 @@ export function clearSession() {
   } catch { /* ок */ }
 }
 
-/** Запрос к API с токеном. Бросает ошибку с текстом от сервера. */
+/** Запрос к API с токеном. Бросает ошибку с понятным текстом. */
 export async function api(path: string, options: RequestInit = {}) {
   const session = loadSession();
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    // Сюда попадаем, если сервер вообще не ответил: неверный адрес,
+    // сервер не запущен, или запрос заблокирован настройкой ALLOWED_ORIGINS.
+    // Показываем адрес — по нему сразу видно, куда стучался сайт.
+    throw new Error(
+      `Нет связи с сервером: ${API_URL}
+` +
+      `Проверьте, что сервер запущен (${API_URL}/api/health) ` +
+      `и что адрес этого сайта указан в ALLOWED_ORIGINS на сервере.`
+    );
+  }
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error || "Ошибка запроса к серверу");
   return json;

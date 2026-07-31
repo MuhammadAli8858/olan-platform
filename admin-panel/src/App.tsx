@@ -35,7 +35,14 @@ function AdminLogin({ onLogin }: { onLogin: (u: User) => void }) {
       saveSession(json.token, json.user);
       onLogin(json.user);
     } catch (err: any) {
-      setError(err.message || "Сервер недоступен");
+      // «Failed to fetch» ничего не объясняет — показываем, куда шёл запрос
+      const noConnection =
+        err instanceof TypeError || /fetch|network|получить данные/i.test(err.message || "");
+      setError(
+        noConnection
+          ? `Нет связи с сервером ${API_URL}. Проверьте: 1) сервер запущен — откройте ${API_URL}/api/health; 2) адрес сайта добавлен в ALLOWED_ORIGINS на сервере; 3) после изменения VITE_API_URL сделан новый деплой сайта.`
+          : err.message || "Сервер недоступен"
+      );
     } finally { setBusy(false); }
   };
 
