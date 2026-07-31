@@ -146,3 +146,28 @@ input::placeholder, textarea::placeholder { color: var(--txt-3); }
     transition-duration: 0.001s !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   УНИВЕРСАЛЬНЫЙ ПЕРЕНОС ДЛИННЫХ ТЕКСТОВ
+   Если клиент вводит длинное слово без пробелов, оно переносится
+   внутри своего блока и не растягивает вёрстку по горизонтали.
+   ══════════════════════════════════════════════════════════════════ */
+
+body {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+img, video, input, textarea, select, pre { max-width: 100%; }
+
+/* Поля формы заявки: текст переносится, поле не выпирает из сетки */
+input, textarea {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+textarea {
+  word-break: break-word;
+  resize: vertical;      /* высоту можно увеличить, ширину — нет */
+  min-height: 110px;
+}

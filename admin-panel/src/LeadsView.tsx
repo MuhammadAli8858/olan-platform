@@ -8,30 +8,15 @@
 // Видно, какому оператору назначена заявка и обращался ли этот
 // клиент раньше в чат. Отмечать обработанной может и менеджер,
 // и админ — это общий журнал обращений.
+//
+// Сама карточка заявки — общий компонент LeadCard: каждое поле
+// клиента в своей рамке, длинный текст переносится внутри неё.
 // ══════════════════════════════════════════════════════════════════
 
 import { useEffect, useState } from "react";
-import {
-  Inbox, RefreshCw, CheckCircle, Circle, User as UserIcon,
-  Mail, Phone, Building2, MessageSquare, Clock,
-} from "lucide-react";
-import { api, fmtDate } from "./lib";
-
-type Lead = {
-  id: string;
-  name: string;
-  organization: string;
-  email: string;
-  phone: string;
-  message: string;
-  status: string;
-  createdAt: string;
-  lang: string;
-  operatorId: string | null;
-  operatorName: string;
-  managerName: string;
-  hasChat: boolean;
-};
+import { Inbox, RefreshCw } from "lucide-react";
+import { api } from "./lib";
+import { LeadCard, type Lead } from "./LeadCard";
 
 export function LeadsView({ title = "Заявки с сайта" }: { title?: string }) {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -74,9 +59,9 @@ export function LeadsView({ title = "Заявки с сайта" }: { title?: st
     <div style={{ padding: 20, maxWidth: 1200, margin: "0 auto" }}>
       {/* ─── Заголовок и фильтры ─── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
-        <div>
-          <h2 className="display" style={{ fontSize: 24, margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
-            <Inbox style={{ width: 20, height: 20, color: "var(--orange)" }} />
+        <div style={{ minWidth: 0 }}>
+          <h2 className="display" style={{ fontSize: 24, margin: 0, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <Inbox style={{ width: 20, height: 20, color: "var(--orange)", flexShrink: 0 }} />
             {title}
             {newCount > 0 && <span className="badge badge-red">{newCount} новых</span>}
           </h2>
@@ -118,82 +103,9 @@ export function LeadsView({ title = "Заявки с сайта" }: { title?: st
       )}
 
       {/* ─── Список заявок ─── */}
-      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))" }}>
+      <div className="lead-grid">
         {shown.map((l) => (
-          <div key={l.id} className="card" style={{ padding: 18, display: "flex", flexDirection: "column" }}>
-            {/* статус и дата */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
-              <span className={`badge ${l.status === "new" ? "badge-orange" : "badge-green"}`}>
-                {l.status === "new"
-                  ? <><Circle style={{ width: 10, height: 10 }} /> Новая</>
-                  : <><CheckCircle style={{ width: 10, height: 10 }} /> Обработана</>}
-              </span>
-              <span className="tele" style={{ fontSize: 10, color: "var(--txt-3)", display: "flex", alignItems: "center", gap: 5 }}>
-                <Clock style={{ width: 10, height: 10 }} />
-                {fmtDate(l.createdAt)}
-              </span>
-            </div>
-
-            {/* клиент */}
-            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 3 }}>{l.name}</div>
-            {l.organization && (
-              <div style={{ fontSize: 13, color: "var(--cyan)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                <Building2 style={{ width: 12, height: 12 }} />
-                {l.organization}
-              </div>
-            )}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--txt-2)", marginBottom: 12 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <Mail style={{ width: 12, height: 12, color: "var(--cyan)" }} /> {l.email}
-              </span>
-              {l.phone && (
-                <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <Phone style={{ width: 12, height: 12, color: "var(--cyan)" }} /> {l.phone}
-                </span>
-              )}
-            </div>
-
-            {l.message && (
-              <p style={{
-                fontSize: 13, lineHeight: 1.6, color: "var(--txt-2)", margin: "0 0 14px",
-                whiteSpace: "pre-wrap", padding: "10px 12px", borderRadius: 10,
-                background: "rgba(255,255,255,.03)", border: "1px solid var(--line-soft)",
-              }}>
-                {l.message}
-              </p>
-            )}
-
-            {/* кому назначена */}
-            <div style={{
-              marginTop: "auto", paddingTop: 12, borderTop: "1px solid var(--line-soft)",
-              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap",
-            }}>
-              <div style={{ fontSize: 12, color: "var(--txt-2)", display: "flex", alignItems: "center", gap: 6 }}>
-                <UserIcon style={{ width: 12, height: 12, color: "var(--orange)" }} />
-                {l.operatorName ? (
-                  <>
-                    <strong style={{ color: "var(--txt)" }}>{l.operatorName}</strong>
-                    {l.managerName && <span style={{ color: "var(--txt-3)" }}>· {l.managerName}</span>}
-                  </>
-                ) : (
-                  <span className="badge badge-grey">ждёт оператора на смене</span>
-                )}
-              </div>
-
-              {l.hasChat && (
-                <span className="badge badge-grey" title="Этот клиент также писал в онлайн-чат">
-                  <MessageSquare style={{ width: 10, height: 10 }} /> есть чат
-                </span>
-              )}
-            </div>
-
-            {l.status === "new" && (
-              <button className="btn btn-ghost btn-sm" style={{ marginTop: 12 }} onClick={() => markDone(l.id)}>
-                <CheckCircle style={{ width: 13, height: 13 }} /> Отметить обработанной
-              </button>
-            )}
-          </div>
+          <LeadCard key={l.id} lead={l} onMarkDone={markDone} showAssignee />
         ))}
       </div>
     </div>

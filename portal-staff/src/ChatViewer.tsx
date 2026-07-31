@@ -118,7 +118,7 @@ export function ChatViewer({
                 padding: "10px 14px", borderRadius: 14,
                 background: fromOperator ? "rgba(255,122,26,.14)" : "var(--panel-3)",
                 border: `1px solid ${fromOperator ? "rgba(255,122,26,.3)" : "var(--line)"}`,
-                fontSize: 13, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                fontSize: 13, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere",
               }}>
                 <div style={{ fontSize: 10, marginBottom: 4, fontWeight: 600, color: fromOperator ? "var(--orange)" : "var(--cyan)" }}>
                   {fromOperator ? (m.authorName || operatorName) : (v.name || "Посетитель")}

@@ -108,3 +108,104 @@ input, textarea, select { font-family: inherit; }
 @media (max-width: 860px) {
   .hide-mobile { display: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   УНИВЕРСАЛЬНЫЙ ПЕРЕНОС ДЛИННЫХ ТЕКСТОВ
+   Клиент в заявке может написать очень длинное слово без пробелов
+   (например «mvkjnbkjvnsli[gmsplkngflkjlnsl;jfnglj;nsd»). Такой текст
+   раньше вылезал одной полосой за пределы карточки. Правила ниже
+   заставляют любой текст переноситься внутри своей рамки.
+   ══════════════════════════════════════════════════════════════════ */
+
+body {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Внутри карточек flex- и grid-элементы по умолчанию не сжимаются
+   меньше своего содержимого — из-за этого длинное слово растягивает
+   карточку. min-width: 0 снимает это ограничение. */
+.card, .card * { min-width: 0; }
+
+/* Ни картинка, ни поле ввода не шире своего контейнера */
+img, video, input, textarea, select, pre { max-width: 100%; }
+
+/* ─── Поле заявки в рамке ─────────────────────────────────────────
+   Универсальный блок: иконка слева не сжимается, текст справа
+   переносится по любому символу и растёт в высоту, а не в ширину. */
+.field {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-soft);
+  min-width: 0;
+  width: 100%;
+}
+
+.field-icon {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  margin-top: 3px;
+  color: var(--cyan);
+}
+
+.field-body { flex: 1 1 auto; min-width: 0; }
+
+.field-label {
+  display: block;
+  margin-bottom: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--txt-3);
+}
+
+/* Главное правило: текст любой длины переносится внутри рамки */
+.field-value {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--txt);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+  hyphens: auto;
+}
+
+.field-value a { color: var(--cyan); text-decoration: none; overflow-wrap: anywhere; }
+.field-value a:hover { text-decoration: underline; }
+
+/* Описание может быть очень длинным — ограничиваем высоту рамки
+   и включаем аккуратную прокрутку внутри неё. */
+.field-value--long {
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Сетка карточек: на узком экране колонка не может быть шире экрана */
+.lead-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  align-items: start;
+}
+
+.lead-card { padding: 16px; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+
+/* Строка «иконка + текст» (анкета посетителя, контакты в списках):
+   иконка не сжимается, длинная почта или телефон переносятся. */
+.inline-field {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.inline-field > svg { flex: 0 0 auto; margin-top: 2px; }

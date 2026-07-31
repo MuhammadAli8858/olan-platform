@@ -21,14 +21,12 @@ import {
   API_URL, api, loadSession, clearSession, showNotification,
   notifyPermission, askNotifyPermission, fmtTime, fmtDate, type User,
 } from "./lib";
+import { LeadCard, type Lead } from "./LeadCard";
 
 type Visitor = { name?: string; email?: string; organization?: string; phone?: string };
 type ChatItem = { id: string; visitorName: string; visitor?: Visitor; lang: string; unread: number; lastAt: string; lastMessage: string };
 type Msg = { id: string; from: string; text: string; at: string };
-type Lead = {
-  id: string; name: string; organization: string; email: string; phone: string;
-  message: string; status: string; createdAt: string; lang: string;
-};
+// Тип заявки и её карточка — общие для всех кабинетов (см. LeadCard.tsx)
 
 export function OperatorCabinet({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [tab, setTab] = useState<"chats" | "leads">("chats");
@@ -261,7 +259,7 @@ export function OperatorCabinet({ user, onLogout }: { user: User; onLogout: () =
                 {/* ─── Анкета посетителя: всё, что он указал перед началом чата ─── */}
                 <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line)", background: "var(--panel)" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
-                    <span style={{ fontWeight: 600, fontSize: 15 }}>
+                    <span style={{ fontWeight: 600, fontSize: 15, minWidth: 0, overflowWrap: "anywhere" }}>
                       {activeChat?.visitor?.name || activeChat?.visitorName || "Посетитель"}
                     </span>
                     <span className="tele" style={{ fontSize: 10, color: "var(--txt-3)" }}>
@@ -271,25 +269,25 @@ export function OperatorCabinet({ user, onLogout }: { user: User; onLogout: () =
 
                   <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12, color: "var(--txt-2)" }}>
                     {activeChat?.visitor?.organization && (
-                      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span className="inline-field">
                         <Building2 style={{ width: 12, height: 12, color: "var(--cyan)" }} />
                         {activeChat.visitor.organization}
                       </span>
                     )}
                     {activeChat?.visitor?.email && (
-                      <a href={`mailto:${activeChat.visitor.email}`} style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--txt-2)" }}>
+                      <a href={`mailto:${activeChat.visitor.email}`} className="inline-field" style={{ color: "var(--txt-2)" }}>
                         <Mail style={{ width: 12, height: 12, color: "var(--cyan)" }} />
                         {activeChat.visitor.email}
                       </a>
                     )}
                     {activeChat?.visitor?.phone && (
-                      <a href={`tel:${activeChat.visitor.phone}`} style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--txt-2)" }}>
+                      <a href={`tel:${activeChat.visitor.phone}`} className="inline-field" style={{ color: "var(--txt-2)" }}>
                         <Phone style={{ width: 12, height: 12, color: "var(--cyan)" }} />
                         {activeChat.visitor.phone}
                       </a>
                     )}
                     {activeChat?.lang && (
-                      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span className="inline-field">
                         <Globe style={{ width: 12, height: 12, color: "var(--cyan)" }} />
                         {activeChat.lang.toUpperCase()}
                       </span>
@@ -307,7 +305,7 @@ export function OperatorCabinet({ user, onLogout }: { user: User; onLogout: () =
                         background: mine ? "var(--orange)" : "var(--panel-2)",
                         border: mine ? "none" : "1px solid var(--line)",
                         color: mine ? "#160a00" : "var(--txt)",
-                        fontSize: 13, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                        fontSize: 13, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere",
                       }}>
                         {m.text}
                         <div style={{ fontSize: 10, opacity: .6, marginTop: 4 }}>{fmtTime(m.at)}</div>
@@ -344,37 +342,9 @@ export function OperatorCabinet({ user, onLogout }: { user: User; onLogout: () =
               на сайте будут приходить сюда.
             </div>
           )}
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
+          <div className="lead-grid">
             {leads.map((l) => (
-              <div key={l.id} className="card" style={{ padding: 18 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 }}>
-                  <span className={`badge ${l.status === "new" ? "badge-orange" : "badge-green"}`}>
-                    {l.status === "new" ? <Circle style={{ width: 10, height: 10 }} /> : <CheckCircle style={{ width: 10, height: 10 }} />}
-                    {l.status === "new" ? "Новая" : "Обработана"}
-                  </span>
-                  <span className="tele" style={{ fontSize: 10, color: "var(--txt-3)" }}>{fmtDate(l.createdAt)}</span>
-                </div>
-
-                <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{l.name}</div>
-                {l.organization && <div style={{ fontSize: 13, color: "var(--cyan)", marginBottom: 10 }}>{l.organization}</div>}
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: "var(--txt-2)", marginBottom: 12 }}>
-                  <a href={`mailto:${l.email}`} style={{ color: "var(--txt-2)" }}>{l.email}</a>
-                  {l.phone && <a href={`tel:${l.phone}`} style={{ color: "var(--txt-2)" }}>{l.phone}</a>}
-                </div>
-
-                {l.message && (
-                  <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--txt-2)", margin: "0 0 14px", whiteSpace: "pre-wrap" }}>
-                    {l.message}
-                  </p>
-                )}
-
-                {l.status === "new" && (
-                  <button className="btn btn-ghost btn-sm" onClick={() => markLead(l.id)}>
-                    <CheckCircle style={{ width: 13, height: 13 }} /> Отметить обработанной
-                  </button>
-                )}
-              </div>
+              <LeadCard key={l.id} lead={l} onMarkDone={markLead} />
             ))}
           </div>
         </div>

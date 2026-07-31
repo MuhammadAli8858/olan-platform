@@ -303,7 +303,7 @@ export function ChatWidget() {
                       background: mine ? "var(--orange)" : "var(--chip-bg)",
                       border: mine ? "none" : "1px solid var(--line)",
                       color: mine ? "#160A00" : "var(--txt)",
-                      fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word",
+                      fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere",
                     }}>
                       {!mine && (
                         <div style={{ fontSize: 10, opacity: 0.85, marginBottom: 3, fontWeight: 600, color: "var(--cyan)" }}>

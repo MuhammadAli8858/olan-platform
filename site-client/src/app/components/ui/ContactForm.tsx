@@ -31,6 +31,12 @@ const inputStyle: React.CSSProperties = {
   border: "1px solid var(--line)",
   color: "var(--txt)",
   borderRadius: "var(--r-md)",
+  // длинный текст без пробелов переносится внутри рамки поля,
+  // а само поле никогда не шире своей колонки
+  minWidth: 0,
+  width: "100%",
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
 };
 
 export function ContactForm({ compact = false }: { compact?: boolean }) {
@@ -77,7 +83,7 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
         <p className="font-display font-bold text-xl uppercase tracking-wide" style={{ color: "var(--txt)" }}>
           {t.contact.sentTitle}
         </p>
-        <p className="text-sm" style={{ color: "var(--txt-2)" }}>
+        <p className="text-sm max-w-md" style={{ color: "var(--txt-2)", overflowWrap: "anywhere" }}>
           {t.contact.sentText}
         </p>
       </div>
@@ -99,7 +105,7 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
         <input required type="email" value={form.email} onChange={set("email")} placeholder={t.contact.email} className="px-4 py-3 text-sm outline-none transition-colors duration-150" style={inputStyle} {...focusHandlers} />
         <input value={form.phone} onChange={set("phone")} placeholder={t.contact.phone} className="px-4 py-3 text-sm outline-none transition-colors duration-150" style={inputStyle} {...focusHandlers} />
       </div>
-      <textarea required rows={4} value={form.message} onChange={set("message")} placeholder={t.contact.message} className="px-4 py-3 text-sm outline-none resize-none transition-colors duration-150" style={inputStyle} {...focusHandlers} />
+      <textarea required rows={4} value={form.message} onChange={set("message")} placeholder={t.contact.message} className="px-4 py-3 text-sm outline-none transition-colors duration-150" style={inputStyle} {...focusHandlers} />
       {error && (
         <div className="text-sm px-4 py-3" style={{ borderRadius: "var(--r-md)", background: "var(--red-dim)", border: "1px solid var(--red-border)", color: "var(--red)" }}>
           {error}
