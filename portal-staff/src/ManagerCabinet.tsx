@@ -169,7 +169,7 @@ export function ManagerCabinet({ user, onLogout }: { user: User; onLogout: () =>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
           <h2 className="display" style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Мои операторы</h2>
           <button className="btn btn-sm" onClick={() => setShowForm(!showForm)}>
-            <UserPlus style={{ width: 14, height: 14 }} /> Выдать доступ оператору
+            <UserPlus style={{ width: 14, height: 14 }} /> Создать оператора
           </button>
         </div>
 
@@ -210,7 +210,7 @@ export function ManagerCabinet({ user, onLogout }: { user: User; onLogout: () =>
         <div style={{ display: "grid", gap: 12 }}>
           {operators.length === 0 && (
             <div className="card" style={{ padding: 24, color: "var(--txt-3)", fontSize: 13, lineHeight: 1.6 }}>
-              У вас пока нет операторов. Нажмите «Выдать доступ оператору», чтобы создать первую учётную запись —
+              У вас пока нет операторов. Нажмите «Создать оператора», чтобы создать первую учётную запись —
               после этого обращения с сайта начнут распределяться между вашими операторами.
               Кнопка «Диалоги» у каждого оператора откроет его переписку для чтения.
             </div>
@@ -256,12 +256,12 @@ export function ManagerCabinet({ user, onLogout }: { user: User; onLogout: () =>
                 <button className="btn btn-sm" onClick={() => setViewChatsOf(op)}>
                   <Eye style={{ width: 13, height: 13 }} /> <span className="hide-mobile">Диалоги</span>
                 </button>
-                <button className="btn btn-ghost btn-sm" onClick={() => { setPwdFor(op); setNewPwd(""); }}>
+                {/* <button className="btn btn-ghost btn-sm" onClick={() => { setPwdFor(op); setNewPwd(""); }}>
                   <KeyRound style={{ width: 13, height: 13 }} /> <span className="hide-mobile">Пароль</span>
                 </button>
                 <button className="btn btn-danger btn-sm" onClick={() => removeOperator(op)}>
                   <Trash2 style={{ width: 13, height: 13 }} /> <span className="hide-mobile">Удалить</span>
-                </button>
+                </button> */}
               </div>
             </div>
           ))}
