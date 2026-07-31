@@ -88,6 +88,10 @@ export function OperatorCabinet({ user, onLogout }: { user: User; onLogout: () =
       refreshChats();
     });
 
+    // при выходе на смену сервер раздаёт накопившиеся обращения —
+    // обновляем список заявок
+    socket.on("leads:changed", () => refreshLeads());
+
     // новая заявка с формы сайта
     socket.on("lead:new", (lead: Lead) => {
       setLeads((prev) => [lead, ...prev]);

@@ -9,10 +9,11 @@
 // ══════════════════════════════════════════════════════════════════
 
 import { useState } from "react";
-import { Radar, LogIn, LogOut, FileEdit, Users } from "lucide-react";
+import { Radar, LogIn, LogOut, FileEdit, Users, Inbox } from "lucide-react";
 import { API_URL, saveSession, clearSession, loadSession, type User } from "./lib";
 import { ContentEditor } from "./ContentEditor";
 import { PeoplePage } from "./PeoplePage";
+import { LeadsView } from "./LeadsView";
 
 function AdminLogin({ onLogin }: { onLogin: (u: User) => void }) {
   const [email, setEmail] = useState("");
@@ -91,7 +92,7 @@ function AdminLogin({ onLogin }: { onLogin: (u: User) => void }) {
 
 export default function App() {
   const [user, setUser] = useState<User | null>(() => loadSession()?.user || null);
-  const [page, setPage] = useState<"content" | "people">("content");
+  const [page, setPage] = useState<"content" | "people" | "leads">("content");
 
   if (!user) return <AdminLogin onLogin={setUser} />;
 
@@ -122,13 +123,18 @@ export default function App() {
           <button className={`btn btn-sm ${page === "people" ? "" : "btn-ghost"}`} onClick={() => setPage("people")}>
             <Users style={{ width: 14, height: 14 }} /> Менеджеры и операторы
           </button>
+          <button className={`btn btn-sm ${page === "leads" ? "" : "btn-ghost"}`} onClick={() => setPage("leads")}>
+            <Inbox style={{ width: 14, height: 14 }} /> Заявки
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={() => { clearSession(); setUser(null); }}>
             <LogOut style={{ width: 13, height: 13 }} />
           </button>
         </nav>
       </header>
 
-      {page === "content" ? <ContentEditor /> : <PeoplePage />}
+      {page === "content" && <ContentEditor />}
+      {page === "people" && <PeoplePage />}
+      {page === "leads" && <LeadsView title="Все заявки с сайта" />}
     </div>
   );
 }

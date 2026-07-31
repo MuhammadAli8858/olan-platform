@@ -11,6 +11,19 @@ import { PrimaryButton } from "./Buttons";
 import { API_URL } from "../../config";
 import { useLang } from "../../i18n/LangContext";
 
+/**
+ * Номер сессии посетителя — тот же, что использует онлайн-чат.
+ * Передаём его вместе с заявкой, чтобы сервер узнал клиента
+ * и отдал заявку тому оператору, с которым тот уже переписывался.
+ */
+function getChatSessionId() {
+  try {
+    return localStorage.getItem("oht-chat-session") || "";
+  } catch {
+    return "";
+  }
+}
+
 // ─── ФОРМА СВЯЗИ ─────────────────────────────────────────────────────────────
 
 const inputStyle: React.CSSProperties = {
@@ -39,7 +52,12 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
       const res = await fetch(`${API_URL}/api/leads`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, lang, page: window.location.pathname }),
+        body: JSON.stringify({
+          ...form,
+          lang,
+          page: window.location.pathname,
+          sessionId: getChatSessionId(), // связь с диалогом в чате
+        }),
       });
       if (!res.ok) throw new Error();
       setSent(true);

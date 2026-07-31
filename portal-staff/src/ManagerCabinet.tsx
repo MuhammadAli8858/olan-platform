@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { api, clearSession, fmtDate, type User } from "./lib";
 import { ChatViewer } from "./ChatViewer";
+import { LeadsView } from "./LeadsView";
 
 type Operator = {
   id: string; name: string; email: string; createdAt: string;
@@ -34,6 +35,8 @@ export function ManagerCabinet({ user, onLogout }: { user: User; onLogout: () =>
   const [newPwd, setNewPwd] = useState("");
   // выбранный оператор — показываем его диалоги для чтения
   const [viewChatsOf, setViewChatsOf] = useState<Operator | null>(null);
+  // какой раздел открыт: операторы или заявки с сайта
+  const [tab, setTab] = useState<"staff" | "leads">("staff");
 
   const load = async () => {
     try { setOperators(await api("/api/users/operators")); } catch (e: any) { setError(e.message); }
@@ -120,6 +123,21 @@ export function ManagerCabinet({ user, onLogout }: { user: User; onLogout: () =>
         </div>
       </header>
 
+      {/* ─── Разделы кабинета ─── */}
+      {!viewChatsOf && (
+        <div style={{ display: "flex", gap: 8, padding: "12px 20px", borderBottom: "1px solid var(--line-soft)" }}>
+          <button className={`btn btn-sm ${tab === "staff" ? "" : "btn-ghost"}`} onClick={() => setTab("staff")}>
+            <Users style={{ width: 14, height: 14 }} /> Мои операторы
+          </button>
+          <button className={`btn btn-sm ${tab === "leads" ? "" : "btn-ghost"}`} onClick={() => setTab("leads")}>
+            <Inbox style={{ width: 14, height: 14 }} /> Заявки с сайта
+          </button>
+        </div>
+      )}
+
+      {/* ═══ ЗАЯВКИ СВОИХ ОПЕРАТОРОВ ═══ */}
+      {!viewChatsOf && tab === "leads" && <LeadsView title="Заявки моих операторов" />}
+
       {/* ═══ ЭКРАН ЧТЕНИЯ ДИАЛОГОВ ВЫБРАННОГО ОПЕРАТОРА ═══ */}
       {viewChatsOf ? (
         <div style={{ padding: 20, maxWidth: 1000, margin: "0 auto" }}>
@@ -129,7 +147,7 @@ export function ManagerCabinet({ user, onLogout }: { user: User; onLogout: () =>
             onBack={() => setViewChatsOf(null)}
           />
         </div>
-      ) : (
+      ) : tab === "staff" ? (
       <div style={{ padding: 20, maxWidth: 1200, margin: "0 auto" }}>
         {/* ─── Сводка ─── */}
         <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", marginBottom: 24 }}>
@@ -249,7 +267,7 @@ export function ManagerCabinet({ user, onLogout }: { user: User; onLogout: () =>
           ))}
         </div>
       </div>
-      )}
+      ) : null}
 
       {/* ─── Окно смены пароля ─── */}
       {pwdFor && (

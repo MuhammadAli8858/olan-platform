@@ -39,36 +39,131 @@ export function getOnlineOperatorIds() {
  * кто сейчас онлайн. Если онлайн никого нет — случайно среди всех
  * (чтобы обращение не потерялось; оператор увидит его, когда войдёт).
  */
+/**
+ * Выбрать оператора для нового обращения.
+ *
+ * Главное правило: обращения идут ТОЛЬКО тем, кто сейчас на смене.
+ *  • один оператор на смене — всё достаётся ему;
+ *  • несколько — распределяем поровну;
+ *  • никого нет на смене — возвращаем null, обращение ждёт.
+ *    Как только оператор выйдет на смену, оно достанется ему
+ *    (этим занимается функция assignPending ниже).
+ *
+ * Что считается нагрузкой: только НЕЗАКРЫТЫЕ дела — заявки со
+ * статусом «новая» и диалоги с непрочитанными сообщениями.
+ * Обработанные обращения нагрузку не создают, поэтому оператор,
+ * который быстро всё разобрал, снова получает обращения наравне.
+ *
+ * При равной нагрузке работает чередование по кругу — так двое
+ * на смене получают обращения по очереди, а не случайными сериями.
+ */
+let rotationCursor = 0;
+
 export function pickOperator() {
   const data = db.read();
-  const allOperators = data.operators.map((o) => o.id);
-  if (!allOperators.length) return null; // операторов ещё не создали
 
-  // Распределяем ЧЕСТНО среди ВСЕХ операторов (не только онлайн) —
-  // чтобы обращения не сваливались одному человеку, который сейчас
-  // на смене. Оператор увидит свои диалоги, когда войдёт в кабинет.
-  //
-  // Балансировка: считаем, сколько диалогов уже у каждого оператора,
-  // и отдаём новый тому, у кого их меньше всего. При равенстве —
-  // выбираем случайно, чтобы не было перекоса на первого в списке.
+  // только те, кто сейчас в кабинете, и кто ещё существует в базе
+  const online = getOnlineOperatorIds().filter((id) =>
+    data.operators.some((o) => o.id === id)
+  );
+  if (!online.length) return null; // никого нет на смене — обращение подождёт
+  if (online.length === 1) return online[0]; // один на смене — всё ему
 
-  const load = new Map(allOperators.map((id) => [id, 0]));
+  // текущая нагрузка: незакрытые заявки и диалоги, ждущие ответа
+  const load = new Map(online.map((id) => [id, 0]));
   for (const chat of data.chats) {
-    if (chat.operatorId && load.has(chat.operatorId)) {
+    if (load.has(chat.operatorId) && (chat.unreadForOperator || 0) > 0) {
       load.set(chat.operatorId, load.get(chat.operatorId) + 1);
     }
   }
+  for (const lead of data.leads) {
+    if (load.has(lead.operatorId) && lead.status === "new") {
+      load.set(lead.operatorId, load.get(lead.operatorId) + 1);
+    }
+  }
 
-  // минимальная нагрузка среди всех операторов
   const minLoad = Math.min(...load.values());
-  // все операторы с минимальной нагрузкой
-  const leastBusy = allOperators.filter((id) => load.get(id) === minLoad);
+  const leastBusy = online.filter((id) => load.get(id) === minLoad);
 
-  // среди наименее загруженных приоритет тем, кто сейчас онлайн
-  const onlineLeastBusy = leastBusy.filter((id) => isOperatorOnline(id));
-  const pool = onlineLeastBusy.length ? onlineLeastBusy : leastBusy;
+  // чередуем по кругу — обращения идут по очереди
+  const chosen = leastBusy[rotationCursor % leastBusy.length];
+  rotationCursor = (rotationCursor + 1) % 1000;
+  return chosen;
+}
 
-  return pool[Math.floor(Math.random() * pool.length)];
+/**
+ * Найти оператора, который УЖЕ ведёт этого клиента.
+ *
+ * Нужно, чтобы заявка с формы попала тому же человеку, с кем клиент
+ * до этого переписывался в чате (и наоборот). Узнаём клиента двумя
+ * способами: по номеру сессии браузера и по электронной почте.
+ */
+export function findOperatorForVisitor({ sessionId, email }) {
+  const data = db.read();
+  const mail = String(email || "").trim().toLowerCase();
+  const exists = (id) => id && data.operators.some((o) => o.id === id);
+
+  // 1. По номеру сессии — самый надёжный признак того же посетителя
+  if (sessionId) {
+    const chat = data.chats.find((c) => c.sessionId === sessionId && exists(c.operatorId));
+    if (chat) return chat.operatorId;
+  }
+
+  // 2. По почте: клиент мог писать с телефона, а заявку отправить с компьютера
+  if (mail) {
+    const chat = [...data.chats]
+      .reverse()
+      .find((c) => String(c.visitor?.email || "").toLowerCase() === mail && exists(c.operatorId));
+    if (chat) return chat.operatorId;
+
+    const lead = [...data.leads]
+      .reverse()
+      .find((l) => String(l.email || "").toLowerCase() === mail && exists(l.operatorId));
+    if (lead) return lead.operatorId;
+  }
+
+  return null;
+}
+
+/**
+ * Раздать обращения, которые ждали оператора.
+ *
+ * Вызывается, когда оператор выходит на смену. Если пока никого
+ * не было в кабинете, диалоги и заявки копились без исполнителя —
+ * теперь они распределяются между теми, кто сейчас на смене.
+ *
+ * Возвращает { chats, leads } — сколько чего раздано.
+ */
+export function assignPending() {
+  const data = db.read();
+  const online = getOnlineOperatorIds().filter((id) =>
+    data.operators.some((o) => o.id === id)
+  );
+  if (!online.length) return { chats: 0, leads: 0 };
+
+  const exists = (id) => id && data.operators.some((o) => o.id === id);
+  let chats = 0;
+  let leads = 0;
+
+  // сначала пробуем вернуть клиента его прежнему оператору,
+  // иначе отдаём наименее загруженному из тех, кто на смене
+  for (const chat of data.chats) {
+    if (exists(chat.operatorId)) continue;
+    chat.operatorId =
+      findOperatorForVisitor({ sessionId: chat.sessionId, email: chat.visitor?.email }) ||
+      pickOperator();
+    if (chat.operatorId) chats++;
+  }
+  for (const lead of data.leads) {
+    if (exists(lead.operatorId)) continue;
+    lead.operatorId =
+      findOperatorForVisitor({ sessionId: lead.sessionId, email: lead.email }) ||
+      pickOperator();
+    if (lead.operatorId) leads++;
+  }
+
+  if (chats || leads) db.write();
+  return { chats, leads };
 }
 
 /**
@@ -82,10 +177,15 @@ export function getOrCreateChat(sessionId, meta = {}) {
   if (chat) {
     // если оператора удалили — переназначим диалог
     if (chat.operatorId && !data.operators.some((o) => o.id === chat.operatorId)) {
-      chat.operatorId = pickOperator();
+      chat.operatorId = null;
     }
-    // если оператора не было (никого не создали в момент обращения) — попробуем снова
-    if (!chat.operatorId) chat.operatorId = pickOperator();
+    // оператора ещё нет (никого не было на смене) — пробуем назначить:
+    // сначала того, кто уже вёл этого клиента, иначе — свободного на смене
+    if (!chat.operatorId) {
+      chat.operatorId =
+        findOperatorForVisitor({ sessionId, email: meta.email || chat.visitor?.email }) ||
+        pickOperator();
+    }
     // если посетитель заново заполнил анкету — обновляем данные
     if (meta.name) {
       chat.visitor = {
@@ -103,7 +203,9 @@ export function getOrCreateChat(sessionId, meta = {}) {
   chat = {
     id: nanoid(10),
     sessionId,
-    operatorId: pickOperator(),
+    // если клиент уже общался с кем-то из операторов — возвращаем его туда же
+    operatorId:
+      findOperatorForVisitor({ sessionId, email: meta.email }) || pickOperator(),
     // анкета, которую посетитель заполняет перед началом чата
     visitor: {
       name: meta.name || "",

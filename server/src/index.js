@@ -424,11 +424,20 @@ app.get("/api/users/tree", requireAuth(["admin"]), (_req, res) => {
 // ══════════════════════════════════════════════════════════════════
 
 app.post("/api/leads", (req, res) => {
-  const { name, organization, email, phone, message, page, lang } = req.body;
+  const { name, organization, email, phone, message, page, lang, sessionId } = req.body;
   if (!name || !email) return res.status(400).json({ error: "Укажите имя и почту" });
+
+  // Кому отдать заявку:
+  //  1. если клиент уже переписывался в чате — тому же оператору,
+  //     чтобы человек не пересказывал всё заново;
+  //  2. иначе — свободному оператору из тех, кто сейчас на смене;
+  //  3. если на смене никого — заявка ждёт (operatorId = null)
+  //     и достанется первому, кто выйдет на смену.
+  const ownOperator = chatService.findOperatorForVisitor({ sessionId, email });
 
   const lead = {
     id: nanoid(10),
+    sessionId: String(sessionId || ""),
     name: String(name).slice(0, 200),
     organization: String(organization || "").slice(0, 200),
     email: String(email).slice(0, 200),
@@ -436,7 +445,7 @@ app.post("/api/leads", (req, res) => {
     message: String(message || "").slice(0, 4000),
     page: String(page || ""),
     lang: String(lang || "ru"),
-    operatorId: chatService.pickOperator(),
+    operatorId: ownOperator || chatService.pickOperator(),
     status: "new",
     createdAt: new Date().toISOString(),
   };
@@ -448,17 +457,45 @@ app.post("/api/leads", (req, res) => {
   res.json({ ok: true, id: lead.id });
 });
 
-/** Заявки: оператор видит свои, менеджер — своих операторов, админ — все */
+/**
+ * Заявки с формы «Запросить консультацию».
+ *   оператор  — видит только свои
+ *   менеджер  — все заявки своих операторов
+ *   админ     — все заявки платформы
+ *
+ * Менеджер и админ дополнительно видят, какому оператору
+ * назначена каждая заявка.
+ */
 app.get("/api/leads", requireAuth(["operator", "manager", "admin"]), (req, res) => {
   const data = db.read();
   let list = data.leads;
+
   if (req.user.role === "operator") {
     list = list.filter((l) => l.operatorId === req.user.id);
   } else if (req.user.role === "manager") {
     const mine = data.operators.filter((o) => o.managerId === req.user.id).map((o) => o.id);
-    list = list.filter((l) => mine.includes(l.operatorId));
+    // заявки своих операторов + пока не назначенные никому
+    list = list.filter((l) => mine.includes(l.operatorId) || !l.operatorId);
   }
-  res.json([...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+
+  // добавляем имя оператора и менеджера — для кабинета менеджера и админки
+  const withNames = list.map((l) => {
+    const op = data.operators.find((o) => o.id === l.operatorId);
+    const mgr = op ? data.managers.find((m) => m.id === op.managerId) : null;
+    return {
+      ...l,
+      operatorName: op ? op.name : "",
+      managerName: mgr ? mgr.name : "",
+      // была ли переписка с этим клиентом в чате
+      hasChat: data.chats.some(
+        (c) =>
+          (l.sessionId && c.sessionId === l.sessionId) ||
+          (l.email && String(c.visitor?.email || "").toLowerCase() === l.email.toLowerCase())
+      ),
+    };
+  });
+
+  res.json(withNames.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
 });
 
 /** Отметить заявку обработанной */
@@ -608,6 +645,22 @@ io.on("connection", (socket) => {
     operatorId = user.id;
     socket.join(`op:${operatorId}`);
     chatService.setOperatorOnline(operatorId);
+
+    // Оператор вышел на смену — раздаём обращения, которые ждали,
+    // пока в кабинете никого не было
+    const pending = chatService.assignPending();
+    if (pending.chats || pending.leads) {
+      console.log(
+        `  [смена] ${chatService.operatorName(operatorId)} вышел(а) на смену — ` +
+        `распределено диалогов: ${pending.chats}, заявок: ${pending.leads}`
+      );
+      // обновим списки у всех, кто сейчас на смене
+      for (const id of chatService.getOnlineOperatorIds()) {
+        io.to(`op:${id}`).emit("chat:list-changed");
+        io.to(`op:${id}`).emit("leads:changed");
+      }
+    }
+
     socket.emit("operator:ready", { chats: chatService.chatsForOperator(operatorId) });
   });
 
