@@ -13,8 +13,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { dict, LANGUAGES, type LangCode } from "./locales";
 import { API_URL } from "../config";
+import { currentRoute, buildPath, detectLang } from "../lib/routes";
 import { problems as localProblems } from "../data/problems";
 import { solutions as localSolutions } from "../data/solutions";
+import { fallbackDevices } from "../data/devices.generated";
 import * as localCompany from "../data/company";
 
 type Ctx = {
@@ -31,7 +33,14 @@ const LangCtx = createContext<Ctx | null>(null);
 /** Встроенный запасной вариант — сайт работает даже без сервера */
 const fallbackContent = {
   problems: localProblems,
-  solutions: localSolutions,
+  // подмешиваем каталог комплексов, чтобы он был виден
+  // и когда сервер недоступен
+  solutions: Object.fromEntries(
+    Object.entries(localSolutions).map(([id, sol]: any) => [
+      id,
+      { ...sol, ...(fallbackDevices as any)[id] },
+    ])
+  ),
   stats: localCompany.stats,
   processSteps: localCompany.processSteps,
   detections: localCompany.detections,
@@ -59,23 +68,28 @@ const fallbackContent = {
 };
 
 export function LangProvider({ children }: { children: ReactNode }) {
+  // Язык берётся из адреса страницы (/en/…), а если его там нет —
+  // из сохранённого выбора или настроек браузера.
   const [lang, setLangState] = useState<LangCode>(() => {
-    try {
-      const saved = localStorage.getItem("oht-lang") as LangCode;
-      if (saved && LANGUAGES.some((l) => l.code === saved)) return saved;
-      // подсказка из настроек браузера
-      const nav = navigator.language.slice(0, 2) as LangCode;
-      if (LANGUAGES.some((l) => l.code === nav)) return nav;
-    } catch { /* ок */ }
-    return "ru";
+    if (typeof window === "undefined") return "ru";
+    const fromUrl = window.location.pathname.split("/").filter(Boolean)[0];
+    if (LANGUAGES.some((l) => l.code === fromUrl)) return fromUrl as LangCode;
+    return detectLang();
   });
 
   const [content, setContent] = useState<any>(fallbackContent);
   const [loading, setLoading] = useState(true);
 
+  // Смена языка меняет и адрес страницы: пользователь остаётся
+  // на том же решении, но в другой языковой версии, и такую ссылку
+  // можно скопировать и отправить.
   const setLang = (l: LangCode) => {
     setLangState(l);
     try { localStorage.setItem("oht-lang", l); } catch { /* ок */ }
+    if (typeof window !== "undefined") {
+      const { page } = currentRoute();
+      window.history.replaceState({ page }, "", buildPath(l, page));
+    }
   };
 
   const rtl = LANGUAGES.find((l) => l.code === lang)?.rtl ?? false;

@@ -4,8 +4,11 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite"
+    "build": "vite build && node scripts/prerender.mjs",
+    "dev": "vite",
+    "build:spa": "vite build",
+    "prerender": "node scripts/prerender.mjs",
+    "sync:devices": "node ../server/scripts/export-devices.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

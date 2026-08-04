@@ -2,63 +2,275 @@
 // СЛУЖБА ПЕРЕВОДА
 //
 // Когда администратор меняет текст на одном языке, изменение
-// расходится по всем 9 языкам. Как именно переводить — зависит
-// от выбранного поставщика (настраивается в config.js):
+// расходится по всем языкам сайта. Как именно переводить —
+// зависит от поставщика (настраивается в config.js):
 //
-//   "google-free" — БЕСПЛАТНЫЙ переводчик Google без ключа и
-//              регистрации (стоит по умолчанию). Переводит все
-//              9 языков платформы. Нужен только интернет.
+//   "claude"  — ⭐ СМЫСЛОВОЙ ПЕРЕВОД (рекомендуется).
+//               Переводит не слова по отдельности, а мысль целиком:
+//               видит, что это сайт про системы контроля дорожного
+//               движения, знает отраслевые термины, понимает, где
+//               заголовок, а где строка техпаспорта, и подбирает
+//               формулировку под каждый язык.
+//               Нужен ключ ANTHROPIC_API_KEY.
 //
-//   "none"   — без перевода: текст просто копируется на все языки
-//              (работает всегда, без интернета и ключей).
-//              Админ потом правит переводы вручную в панели.
+//   "google-free" — бесплатный переводчик Google без ключа.
+//               Переводит дословно, но работает сразу.
+//               Используется как запасной, если "claude" недоступен.
 //
-//   "libre"  — LibreTranslate. Бесплатный и его можно поднять
-//              на своём сервере. Ключ обычно не нужен.
+//   "none"    — без перевода, текст копируется на все языки.
+//   "libre"   — LibreTranslate (можно поднять у себя).
+//   "google"  — Google Cloud Translation (нужен ключ).
+//   "deepl"   — DeepL (нужен ключ).
 //
-//   "google" — Google Cloud Translation. Нужен ключ API.
-//
-//   "deepl"  — DeepL. Лучшее качество для европейских языков.
-//              Нужен ключ API.
+// В ЛЮБОМ поставщике перед переводом прячутся названия приборов,
+// аббревиатуры и единицы измерения (см. glossary.js), чтобы
+// «W Space-S» не превратился в «В Космос-С», а «IP68» — в «ИП68».
 //
 // Если поставщик не отвечает — служба не ломает сохранение,
-// а просто копирует исходный текст (сайт никогда не останется пустым).
+// а откатывается на запасной переводчик или копирует исходный текст.
 // ══════════════════════════════════════════════════════════════════
 
 import { TRANSLATE } from "./config.js";
+import { protect, restore, glossaryHint, LANG_INFO } from "./glossary.js";
 
-/** Коды языков для разных поставщиков (у DeepL свои обозначения) */
+/** Коды языков для DeepL (у него свои обозначения) */
 const DEEPL_CODES = {
-  ru: "RU", en: "EN", de: "DE", zh: "ZH", uk: "UK",
-  ar: "AR", uz: null, kk: null, be: null, // DeepL их не поддерживает
+  ru: "RU", en: "EN", zh: "ZH", ar: "AR",
+  uz: null, // DeepL не знает узбекский — для него сработает запасной переводчик
 };
+
+// ─── Кэш переводов ────────────────────────────────────────────────
+// Один и тот же текст на одном языке переводится один раз за запуск
+// сервера. Экономит и время, и лимиты API.
+const cache = new Map();
+const cacheKey = (text, from, to, kind) => `${from}>${to}|${kind || ""}|${text}`;
 
 /**
  * Перевести список строк.
- * Возвращает массив той же длины (при ошибке — исходные строки).
+ *
+ * @param {string[]} texts — что переводить
+ * @param {string} from    — исходный язык
+ * @param {string} to      — целевой язык
+ * @param {string[]} [kinds] — подсказка, что это за строка
+ *        ("заголовок", "параметр техпаспорта", …). Нужна смысловому
+ *        переводчику, чтобы выбрать верный стиль и длину.
+ * @returns {Promise<string[]>} массив той же длины
  */
-export async function translateBatch(texts, from, to) {
+export async function translateBatch(texts, from, to, kinds = []) {
   if (!texts.length || from === to) return texts;
 
-  const provider = TRANSLATE.provider;
-  if (provider === "none") return texts; // копируем как есть
+  const provider = resolveProvider();
+  if (provider === "none") return texts;
 
+  // 1. Отдаём из кэша всё, что уже переводили
+  const out = new Array(texts.length);
+  const todo = [];
+  texts.forEach((text, i) => {
+    const key = cacheKey(text, from, to, kinds[i]);
+    if (cache.has(key)) out[i] = cache.get(key);
+    else todo.push({ i, text, kind: kinds[i] });
+  });
+  if (!todo.length) return out;
+
+  // 2. Прячем непереводимые термины
+  const masked = todo.map(({ text }) => protect(text));
+
+  // 3. Переводим
+  let translated;
   try {
-    if (provider === "google-free") return await viaGoogleFree(texts, from, to);
-    if (provider === "libre") return await viaLibre(texts, from, to);
-    if (provider === "google") return await viaGoogle(texts, from, to);
-    if (provider === "deepl") return await viaDeepL(texts, from, to);
+    translated = await runProvider(
+      provider,
+      masked.map((m) => m.masked),
+      from,
+      to,
+      todo.map((x) => x.kind)
+    );
   } catch (err) {
-    console.warn(`[перевод] ${from}→${to} не удался (${err.message}). Текст скопирован без перевода.`);
+    console.warn(`[перевод] ${provider} ${from}→${to}: ${err.message}`);
+    // Смысловой переводчик не ответил — пробуем бесплатный Google
+    if (provider === "claude") {
+      try {
+        translated = await viaGoogleFree(masked.map((m) => m.masked), from, to);
+        console.warn(`[перевод] ${from}→${to}: использован запасной переводчик Google`);
+      } catch {
+        translated = null;
+      }
+    }
   }
-  return texts;
+
+  // 4. Возвращаем термины на место и складываем в кэш
+  todo.forEach((item, k) => {
+    const raw = translated?.[k];
+    const value = raw ? restore(String(raw), masked[k].map) : item.text;
+    out[item.i] = value || item.text;
+    cache.set(cacheKey(item.text, from, to, item.kind), out[item.i]);
+  });
+
+  return out;
+}
+
+/** Какой поставщик реально используется */
+function resolveProvider() {
+  const p = TRANSLATE.provider;
+  // Ключ Anthropic задан, а поставщик остался по умолчанию —
+  // включаем смысловой перевод автоматически.
+  if (p === "google-free" && TRANSLATE.anthropicKey) return "claude";
+  // Выбран "claude", но ключа нет — молча работаем на бесплатном Google.
+  if (p === "claude" && !TRANSLATE.anthropicKey) return "google-free";
+  return p;
+}
+
+function runProvider(provider, texts, from, to, kinds) {
+  if (provider === "claude") return viaClaude(texts, from, to, kinds);
+  if (provider === "google-free") return viaGoogleFree(texts, from, to);
+  if (provider === "libre") return viaLibre(texts, from, to);
+  if (provider === "google") return viaGoogle(texts, from, to);
+  if (provider === "deepl") return viaDeepL(texts, from, to);
+  throw new Error(`неизвестный поставщик перевода: ${provider}`);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// СМЫСЛОВОЙ ПЕРЕВОД (Claude)
+//
+// Переводчику даётся полный контекст: чей это сайт, для кого,
+// какие термины отрасли, какой язык и в каком стиле нужен результат,
+// и что именно за строка переводится (заголовок / абзац / параметр).
+// Благодаря этому получается грамотный текст, а не подстрочник.
+// ══════════════════════════════════════════════════════════════════
+
+function systemPrompt(from, to) {
+  const src = LANG_INFO[from]?.name || from;
+  const dst = LANG_INFO[to];
+  const hint = glossaryHint(to);
+
+  return `Ты — профессиональный переводчик технических и маркетинговых текстов.
+
+КОНТЕКСТ
+Ты переводишь сайт компании OLAN HIGH TECH PROJECT. Компания производит
+и внедряет интеллектуальные системы контроля дорожного движения:
+радарные комплексы измерения скорости, камеры фиксации проезда на красный
+свет, контроль парковки, полос общественного транспорта, железнодорожных
+переездов, ремней безопасности и телефона за рулём.
+Заказчики — государственные органы (министерства, дорожные ведомства,
+муниципалитеты) и частный бизнес (аэропорты, торговые центры, платные дороги).
+
+ЗАДАЧА
+Перевести с языка ${src} на ${dst?.name || to}.
+Особенности целевого языка: ${dst?.note || "стандартная литературная норма"}.
+
+ПРАВИЛА
+1. Переводи СМЫСЛ, а не слова. Результат должен читаться так, будто текст
+   изначально написан носителем языка для делового сайта.
+2. Сохраняй деловой, уверенный тон. Это B2G/B2B-продажи, не реклама
+   с восклицаниями и не сухая инструкция.
+3. Метки вида ⟦0⟧, ⟦1⟧ — это названия приборов, аббревиатуры и единицы
+   измерения. ПЕРЕНОСИ ИХ В ПЕРЕВОД БЕЗ ИЗМЕНЕНИЙ, ровно в таком же виде.
+   Не переводи их, не меняй номер, не добавляй пробелы внутри меток.
+   Ставь метку в то место фразы, где она уместна по грамматике языка.
+4. Сохраняй числа, проценты и знаки препинания в цифрах.
+5. Не добавляй ничего от себя и ничего не выбрасывай.
+6. Заголовки оставляй короткими — примерно той же длины, что оригинал.
+   Строки техпаспорта переводи предельно кратко, как в спецификации.
+7. Если строка — имя собственное, код или уже на целевом языке,
+   верни её без изменений.
+${hint ? `\nОТРАСЛЕВЫЕ ТЕРМИНЫ (обязательно соблюдать):\n${hint}` : ""}
+
+ФОРМАТ ОТВЕТА
+Верни ТОЛЬКО массив JSON со строками перевода, в том же порядке и той же
+длины, что и входной массив. Без пояснений, без markdown, без \`\`\`.
+Пример ответа: ["первый перевод","второй перевод"]`;
+}
+
+async function claudeCall(items, from, to) {
+  const url = "https://api.anthropic.com/v1/messages";
+  const payload = {
+    model: TRANSLATE.anthropicModel,
+    max_tokens: 8000,
+    system: systemPrompt(from, to),
+    messages: [
+      {
+        role: "user",
+        content:
+          "Переведи эти строки. Для каждой указано, что это за элемент сайта — " +
+          "учитывай это при выборе стиля и длины.\n\n" +
+          JSON.stringify(
+            items.map((x, i) => ({ i, kind: x.kind || "текст", text: x.text })),
+            null,
+            1
+          ) +
+          `\n\nОтветь массивом JSON из ${items.length} строк.`,
+      },
+    ],
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": TRANSLATE.anthropicKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${body.slice(0, 200)}`);
+  }
+
+  const json = await res.json();
+  const text = (json.content || [])
+    .map((c) => (c.type === "text" ? c.text : ""))
+    .join("")
+    .trim();
+
+  // на случай, если ответ обёрнут в ```json
+  const clean = text.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const arr = JSON.parse(clean);
+  if (!Array.isArray(arr)) throw new Error("ответ не является массивом");
+  if (arr.length !== items.length) {
+    throw new Error(`ожидалось ${items.length} строк, пришло ${arr.length}`);
+  }
+  return arr.map((x) => (typeof x === "string" ? x : String(x ?? "")));
+}
+
+async function viaClaude(texts, from, to, kinds = []) {
+  const items = texts.map((text, i) => ({ text, kind: kinds[i] }));
+
+  // Режем на порции: не больше 25 строк и ~4000 символов за запрос —
+  // так перевод точнее и ответ гарантированно помещается целиком.
+  const chunks = [];
+  let cur = [];
+  let size = 0;
+  for (const item of items) {
+    if (cur.length >= 25 || size + item.text.length > 4000) {
+      chunks.push(cur);
+      cur = [];
+      size = 0;
+    }
+    cur.push(item);
+    size += item.text.length;
+  }
+  if (cur.length) chunks.push(cur);
+
+  const out = [];
+  for (const chunk of chunks) {
+    let done = null;
+    for (let attempt = 0; attempt < 2 && !done; attempt++) {
+      try {
+        done = await claudeCall(chunk, from, to);
+      } catch (err) {
+        if (attempt === 1) throw err;
+        await new Promise((r) => setTimeout(r, 900));
+      }
+    }
+    out.push(...done);
+  }
+  return out;
 }
 
 // ─── Google-переводчик без ключа ──────────────────────────────────
-// Использует открытую точку translate.googleapis.com (client=gtx).
-// Ключ не нужен. Каждый текст переводится отдельным запросом,
-// одновременно идёт не больше 4 запросов, при сбое — одна повторная
-// попытка, при полном отказе текст остаётся как есть (не ломаем сайт).
+// Открытая точка translate.googleapis.com (client=gtx), ключ не нужен.
 
 async function gtxOne(text, from, to, attempt = 0) {
   const url =
@@ -66,21 +278,15 @@ async function gtxOne(text, from, to, attempt = 0) {
     `&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`;
   const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
   if (res.status === 429 && attempt === 0) {
-    // слишком часто — подождём секунду и попробуем ещё раз
     await new Promise((r) => setTimeout(r, 1200));
     return gtxOne(text, from, to, 1);
   }
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
-  // ответ: [[["перевод","оригинал",...], ["продолжение",...]], ...]
   return (json[0] || []).map((seg) => seg[0]).join("");
 }
 
-/**
- * Пакетный запрос: до 40 текстов за одно обращение к переводчику.
- * Так весь сайт переводится за ~30 запросов вместо трёх тысяч —
- * быстрее и без блокировок за частые обращения.
- */
+/** До 40 текстов за одно обращение — быстрее и без блокировок */
 async function gtxBatch(texts, from, to) {
   const url =
     "https://translate.googleapis.com/translate_a/t?client=gtx" +
@@ -96,7 +302,6 @@ async function gtxBatch(texts, from, to) {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
-  // ответ: ["перевод1","перевод2"] или [["перевод1","ru"],["перевод2","ru"]]
   const list = Array.isArray(json) ? json : [json];
   return list.map((item) => (Array.isArray(item) ? item[0] : item));
 }
@@ -104,7 +309,6 @@ async function gtxBatch(texts, from, to) {
 async function viaGoogleFree(texts, from, to) {
   const out = new Array(texts.length);
 
-  // режем на пакеты: не больше 40 текстов и ~8000 символов за запрос
   const chunks = [];
   let current = [];
   let size = 0;
@@ -126,12 +330,11 @@ async function viaGoogleFree(texts, from, to) {
         out[x.i] = (translated[k] && String(translated[k])) || x.t;
       });
     } catch {
-      // пакет не прошёл — пробуем каждый текст отдельно, медленно но надёжно
       for (const x of chunk) {
         try {
           out[x.i] = (await gtxOne(x.t, from, to)) || x.t;
         } catch {
-          out[x.i] = x.t; // не перевёлся — оставляем оригинал, сайт не ломаем
+          out[x.i] = x.t;
         }
       }
     }
@@ -196,5 +399,23 @@ async function viaDeepL(texts, from, to) {
 
 /** Работает ли автоматический перевод (для подсказки в админ-панели) */
 export function translationEnabled() {
-  return TRANSLATE.provider !== "none";
+  return resolveProvider() !== "none";
+}
+
+/** Что показать администратору в панели */
+export function translationInfo() {
+  const provider = resolveProvider();
+  const smart = provider === "claude";
+  return {
+    provider,
+    enabled: provider !== "none",
+    smart,
+    label: smart
+      ? "Смысловой перевод (учитывает отрасль и контекст)"
+      : provider === "google-free"
+      ? "Дословный перевод Google (бесплатный). Для грамотного перевода добавьте ключ ANTHROPIC_API_KEY"
+      : provider === "none"
+      ? "Перевод выключен — текст копируется на все языки"
+      : `Переводчик: ${provider}`,
+  };
 }

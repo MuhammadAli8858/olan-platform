@@ -25,7 +25,7 @@ import * as chatService from "./chat-service.js";
 import { LANGS } from "./seed-content.js";
 import { syncAllLanguages } from "./content-sync.js";
 import { autoTranslateIfNeeded } from "./auto-translate.js";
-import { translationEnabled } from "./translate.js";
+import { translationEnabled, translationInfo } from "./translate.js";
 import { TRANSLATE } from "./config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -204,7 +204,7 @@ app.post("/api/content/:lang/retranslate", requireAuth(["admin"]), async (req, r
     data.content = result.content;
     data.snapshots = result.snapshots;
     db.write();
-    res.json({ ok: true, translated: translationEnabled(), provider: TRANSLATE.provider, report: result.report });
+    res.json({ ok: true, ...translationInfo(), report: result.report });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -214,8 +214,7 @@ app.post("/api/content/:lang/retranslate", requireAuth(["admin"]), async (req, r
 app.get("/api/content/translation-status", requireAuth(["admin"]), (_req, res) => {
   const data = db.read();
   res.json({
-    provider: TRANSLATE.provider,
-    enabled: translationEnabled(),
+    ...translationInfo(), // provider, enabled, smart, label
     langs: LANGS.map((l) => ({ code: l, filled: Boolean(data.content[l]) })),
   });
 });

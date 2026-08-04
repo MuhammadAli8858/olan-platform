@@ -4,7 +4,9 @@
 // Здесь меняется всё содержимое главного сайта без правки кода:
 //   • Компания      — название, телефон, почта, адрес, описание
 //   • Главный экран — заголовки и подводка
-//   • Проблемы      — добавить/изменить/удалить проблему и её решение
+//   • Проблемы      — добавить/изменить/удалить проблему и её решение,
+//                     а также КАТАЛОГ КОМПЛЕКСОВ внутри решения:
+//                     карточки приборов с фотографиями и техпаспортом
 //   • География     — страны на карте и города-маркеры
 //   • Проекты       — реализованные кейсы
 //   • Партнёры      — логотип, название, описание
@@ -24,10 +26,10 @@ import {
   Languages, RefreshCw, Check,
 } from "lucide-react";
 import { api, API_URL, loadSession } from "./lib";
+import { DeviceEditor } from "./DeviceEditor";
 
 const LANG_NAMES: Record<string, string> = {
-  ru: "Русский", uz: "O'zbekcha", en: "English", zh: "中文", de: "Deutsch",
-  be: "Беларуская", ar: "العربية", kk: "Қазақша", uk: "Українська",
+  ru: "Русский", uz: "O'zbekcha", en: "English", zh: "中文", ar: "العربية",
 };
 
 const ICONS = [
@@ -84,7 +86,7 @@ export function ContentEditor() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [openItem, setOpenItem] = useState<string | null>(null);
-  // применять правки ко всем 9 языкам (включено по умолчанию)
+  // применять правки ко всем языкам сайта (включено по умолчанию)
   const [syncAll, setSyncAll] = useState(true);
   const [saving, setSaving] = useState(false);
   const [trStatus, setTrStatus] = useState<{ provider: string; enabled: boolean } | null>(null);
@@ -108,7 +110,7 @@ export function ContentEditor() {
   }, [lang, all]);
 
   // ─── Сохранение ───
-  // Сохранение. По умолчанию правки расходятся по всем 9 языкам.
+  // Сохранение. По умолчанию правки расходятся по всем языкам сайта.
   const save = async () => {
     setSaving(true); setError("");
     try {
@@ -120,8 +122,8 @@ export function ContentEditor() {
         const kept = Object.values(res.report || {}).reduce((n: number, r: any) => n + (r.keptManual || 0), 0);
         setStatus(
           res.translated
-            ? `Сохранено и переведено на все 9 языков ✓${kept ? ` (ручных переводов сохранено: ${kept})` : ""}`
-            : `Сохранено и разнесено по всем 9 языкам ✓${kept ? ` (ручных переводов сохранено: ${kept})` : ""}`
+            ? `Сохранено и переведено на все языки сайта ✓${kept ? ` (ручных переводов сохранено: ${kept})` : ""}`
+            : `Сохранено и разнесено по всем языкам сайта ✓${kept ? ` (ручных переводов сохранено: ${kept})` : ""}`
         );
       } else {
         setStatus(`Сохранено только для языка «${LANG_NAMES[lang]}» ✓`);
@@ -256,7 +258,7 @@ export function ContentEditor() {
           />
           <span style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 600 }}>
             <Languages style={{ width: 15, height: 15, color: "var(--orange)" }} />
-            Применять изменения ко всем 9 языкам
+            Применять изменения ко всем языкам сайта
           </span>
         </label>
 
@@ -343,6 +345,9 @@ export function ContentEditor() {
                     stats: [], productName: "OHT-000", solutionTitle: "Название решения",
                     sellText: "Продающее описание решения.", features: [], specs: [], results: [],
                     ctaLine: "Призыв к действию.",
+                    catalogTitle: "Комплексы для этой задачи",
+                    catalogLead: "Нажмите на карточку, чтобы посмотреть характеристики и техпаспорт. Стоимость — по запросу.",
+                    devices: [],
                   },
                 },
               }));
@@ -405,13 +410,16 @@ export function ContentEditor() {
                       <Field label="Заголовок решения" value={sol.solutionTitle} onChange={(v: string) => setField(["solutions", p.id, "solutionTitle"], v)} />
                     </div>
                     <Field label="Продающий текст" textarea value={sol.sellText} onChange={(v: string) => setField(["solutions", p.id, "sellText"], v)} />
+                    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+                      <Field label="Заголовок каталога комплексов" value={sol.catalogTitle} onChange={(v: string) => setField(["solutions", p.id, "catalogTitle"], v)} placeholder="Комплексы для контроля скорости" />
+                    </div>
+                    <Field label="Подводка к каталогу" textarea value={sol.catalogLead} onChange={(v: string) => setField(["solutions", p.id, "catalogLead"], v)} placeholder="Нажмите на карточку, чтобы посмотреть техпаспорт. Стоимость — по запросу." />
                     <Field label="Призыв к действию внизу страницы" textarea value={sol.ctaLine} onChange={(v: string) => setField(["solutions", p.id, "ctaLine"], v)} />
 
                     {/* списки внутри решения */}
                     {[
                       { key: "stats", title: "Факты о проблеме", fields: [["value", "Цифра"], ["fact", "Факт"], ["source", "Источник"]], blank: { value: "", fact: "", source: "" } },
                       { key: "features", title: "Преимущества", fields: [["title", "Заголовок"], ["desc", "Описание"], ["icon", "Иконка"]], blank: { icon: "Shield", title: "", desc: "" } },
-                      { key: "specs", title: "Технический паспорт", fields: [["k", "Параметр"], ["v", "Значение"]], blank: { k: "", v: "" } },
                       { key: "results", title: "Результаты", fields: [["value", "Цифра"], ["label", "Описание"]], blank: { value: "", label: "" } },
                     ].map(({ key, title, fields, blank }) => (
                       <div key={key} style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
@@ -448,6 +456,15 @@ export function ContentEditor() {
                         ))}
                       </div>
                     ))}
+
+                    {/* ─── Каталог комплексов для этого решения ─── */}
+                    <DeviceEditor
+                      devices={sol.devices || []}
+                      apiUrl={API_URL}
+                      uploadImage={uploadImage}
+                      onError={setError}
+                      onChange={(next) => setField(["solutions", p.id, "devices"], next)}
+                    />
                   </div>
                 )}
               </div>

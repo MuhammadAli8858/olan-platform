@@ -15,7 +15,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { seedContent } from "./seed-content.js";
+import { seedContent, LANGS } from "./seed-content.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "..", "data");
@@ -60,6 +60,21 @@ export function read() {
     // и не затираем то, что администратор уже отредактировал вручную.
     const fresh = seedContent();
     let migrated = false;
+
+    // ── Список языков изменился ──
+    // Если из платформы убрали язык (или добавили новый), приводим базу
+    // в соответствие: лишние языки удаляем, недостающие — создаём.
+    // Русский остаётся всегда, он исходный.
+    const removed = Object.keys(cache.content).filter((l) => !LANGS.includes(l));
+    for (const lang of removed) {
+      delete cache.content[lang];
+      if (cache.snapshots) delete cache.snapshots[lang];
+      migrated = true;
+    }
+    if (removed.length) {
+      console.log(`  [миграция] языки удалены из базы: ${removed.join(", ")}`);
+    }
+
     for (const lang of Object.keys(fresh)) {
       if (lang === "ru") continue;
       // язык пуст — заполняем переводом

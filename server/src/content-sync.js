@@ -1,11 +1,11 @@
 // ══════════════════════════════════════════════════════════════════
-// СИНХРОНИЗАЦИЯ СОДЕРЖИМОГО ПО ВСЕМ 9 ЯЗЫКАМ
+// СИНХРОНИЗАЦИЯ СОДЕРЖИМОГО ПО ВСЕМ ЯЗЫКАМ САЙТА
 //
 // Правило простое:
 //   • Структура (какие есть проблемы, партнёры, проекты, страны,
 //     их порядок, коды, иконки, координаты, логотипы) —
 //     ВСЕГДА одинаковая на всех языках. Добавили проблему на русском —
-//     она появилась во всех девяти.
+//     она появилась во всех языках.
 //
 //   • Тексты — переводятся или копируются, НО:
 //     если админ уже перевёл поле вручную на каком-то языке,
@@ -56,6 +56,19 @@ const TRANSLATABLE = [
   "solutions.*.specs.*.k",
   "solutions.*.specs.*.v",
   "solutions.*.results.*.label",
+  "solutions.*.catalogTitle",
+  "solutions.*.catalogLead",
+  "solutions.*.devices.*.name",
+  "solutions.*.devices.*.tagline",
+  "solutions.*.devices.*.summary",
+  "solutions.*.devices.*.description",
+  "solutions.*.devices.*.badge",
+  "solutions.*.devices.*.highlights.*",
+  "solutions.*.devices.*.specs.*.k",
+  "solutions.*.devices.*.specs.*.v",
+  "solutions.*.devices.*.features.*.title",
+  "solutions.*.devices.*.features.*.desc",
+  "solutions.*.devices.*.photos.*.caption",
   "countries.*.name",
   "projectMarkers.*.name",
   "projects.*.country",
@@ -65,6 +78,64 @@ const TRANSLATABLE = [
   "projects.*.metrics.*.l",
   "partners.*.tag",
   "partners.*.description",
+];
+
+/**
+ * Что это за строка — подсказка смысловому переводчику.
+ * Заголовок нужно перевести коротко, строку техпаспорта — предельно
+ * сухо, продающий абзац — живым деловым языком. Без этой подсказки
+ * переводчик выбирает стиль наугад.
+ */
+const KINDS = [
+  ["company.about", "описание компании, абзац"],
+  ["company.address", "почтовый адрес"],
+  ["company.statusLine", "строка статуса в шапке сайта, очень короткая"],
+  ["hero.badge", "маленькая метка над заголовком"],
+  ["hero.titleLine1", "часть главного заголовка сайта"],
+  ["hero.titleAccent", "выделенное слово в главном заголовке"],
+  ["hero.titleLine3", "часть главного заголовка сайта"],
+  ["hero.lead", "подводка под главным заголовком"],
+  ["stats.*.label", "подпись к цифре, 2-4 слова"],
+  ["processSteps.*.title", "заголовок этапа внедрения"],
+  ["processSteps.*.desc", "описание этапа внедрения"],
+  ["detections.*.type", "тип нарушения, короткое название"],
+  ["problems.*.title", "заголовок проблемы клиента"],
+  ["problems.*.short", "краткое описание проблемы, 1 предложение"],
+  ["solutions.*.heroAccent", "выделенная часть заголовка страницы"],
+  ["solutions.*.heroRest", "основная часть заголовка страницы"],
+  ["solutions.*.heroLead", "подводка о проблеме"],
+  ["solutions.*.solutionTitle", "заголовок решения"],
+  ["solutions.*.sellText", "продающий текст решения"],
+  ["solutions.*.ctaLine", "призыв к действию"],
+  ["solutions.*.catalogTitle", "заголовок каталога приборов"],
+  ["solutions.*.catalogLead", "подводка к каталогу приборов"],
+  ["solutions.*.stats.*.fact", "факт о проблеме"],
+  ["solutions.*.stats.*.source", "название источника данных"],
+  ["solutions.*.features.*.title", "заголовок преимущества, 2-4 слова"],
+  ["solutions.*.features.*.desc", "описание преимущества"],
+  ["solutions.*.specs.*.k", "название параметра техпаспорта"],
+  ["solutions.*.specs.*.v", "значение параметра техпаспорта"],
+  ["solutions.*.results.*.label", "подпись к результату внедрения"],
+  ["solutions.*.devices.*.name", "название прибора (обычно не переводится)"],
+  ["solutions.*.devices.*.tagline", "тип прибора, короткая строка"],
+  ["solutions.*.devices.*.badge", "метка на карточке, 1-2 слова"],
+  ["solutions.*.devices.*.summary", "краткое описание прибора для карточки"],
+  ["solutions.*.devices.*.description", "полное описание прибора"],
+  ["solutions.*.devices.*.highlights.*", "ключевая характеристика, очень коротко"],
+  ["solutions.*.devices.*.specs.*.k", "название параметра техпаспорта"],
+  ["solutions.*.devices.*.specs.*.v", "значение параметра техпаспорта"],
+  ["solutions.*.devices.*.features.*.title", "заголовок возможности прибора"],
+  ["solutions.*.devices.*.features.*.desc", "описание возможности прибора"],
+  ["solutions.*.devices.*.photos.*.caption", "подпись к фотографии"],
+  ["countries.*.name", "название страны"],
+  ["projectMarkers.*.name", "название города"],
+  ["projects.*.country", "название страны"],
+  ["projects.*.city", "название города"],
+  ["projects.*.title", "заголовок проекта"],
+  ["projects.*.desc", "описание проекта"],
+  ["projects.*.metrics.*.l", "подпись к цифре проекта"],
+  ["partners.*.tag", "категория партнёра, 1-3 слова"],
+  ["partners.*.description", "описание партнёра"],
 ];
 
 /** Подходит ли путь под шаблон со звёздочками */
@@ -77,6 +148,12 @@ function matches(path, pattern) {
 
 function isTranslatable(path) {
   return TRANSLATABLE.some((pattern) => matches(path, pattern));
+}
+
+/** Человеческое описание поля для переводчика */
+function kindOf(path) {
+  const hit = KINDS.find(([pattern]) => matches(path, pattern));
+  return hit ? hit[1] : "текст на сайте";
 }
 
 /** Собрать все переводимые строки объекта: [{ path, value }] */
@@ -94,7 +171,7 @@ export function collect(obj, prefix = "", out = []) {
     return out;
   }
   if (typeof obj === "string" && obj.trim() && isTranslatable(prefix)) {
-    out.push({ path: prefix, value: obj });
+    out.push({ path: prefix, value: obj, kind: kindOf(prefix) });
   }
   return out;
 }
@@ -157,7 +234,7 @@ export async function syncAllLanguages(content, snapshots, sourceLang, langs, fo
     let kept = 0;      // сохранено ручных переводов
     let unchanged = 0; // не переводилось повторно (исходник не менялся)
 
-    for (const { path, value } of sourceStrings) {
+    for (const { path, value, kind } of sourceStrings) {
       const prevValue = prev ? get(prev, path) : undefined;
       const prevSource = snap?.src ? get(snap.src, path) : undefined;
       const prevOutput = snap?.out ? get(snap.out, path) : undefined;
@@ -166,7 +243,7 @@ export async function syncAllLanguages(content, snapshots, sourceLang, langs, fo
       // с русским исходником (значит, не переведено). Остальное не трогаем.
       if (mode === "fill") {
         if (prevValue === undefined || prevValue === value) {
-          toTranslate.push({ path, value });
+          toTranslate.push({ path, value, kind });
         } else {
           set(target, path, prevValue);
           kept++;
@@ -196,7 +273,7 @@ export async function syncAllLanguages(content, snapshots, sourceLang, langs, fo
         continue;
       }
 
-      toTranslate.push({ path, value });
+      toTranslate.push({ path, value, kind });
     }
 
     // Переводим одним пакетом (или копируем, если перевод отключён)
@@ -204,7 +281,8 @@ export async function syncAllLanguages(content, snapshots, sourceLang, langs, fo
       const translated = await translateBatch(
         toTranslate.map((x) => x.value),
         sourceLang,
-        lang
+        lang,
+        toTranslate.map((x) => x.kind) // подсказка: заголовок / абзац / параметр
       );
       toTranslate.forEach((item, i) => set(target, item.path, translated[i] ?? item.value));
     }

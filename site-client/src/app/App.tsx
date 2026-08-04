@@ -8,7 +8,7 @@
 // Подробная схема проекта — в файле ARCHITECTURE.md в корне.
 // ══════════════════════════════════════════════════════════════════
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LangProvider, useLang } from "./i18n/LangContext";
 import { ChatWidget } from "./components/chat/ChatWidget";
 import { Header } from "./components/layout/Header";
@@ -16,14 +16,16 @@ import { Footer } from "./components/layout/Footer";
 import { HomePage } from "./pages/HomePage";
 import { SolutionPage } from "./pages/SolutionPage";
 import type { Page, NavigateFn } from "./types";
+import { currentRoute, buildPath } from "./lib/routes";
+import { PageMeta } from "./components/layout/PageMeta";
 
 function AppInner() {
   // ── Содержимое сайта (из админ-панели) и язык ──
-  const { content } = useLang();
+  const { content, lang } = useLang();
   const problems = content?.problems || [];
 
-  // ── Состояние: текущая страница ──
-  const [page, setPage] = useState<Page>("home");
+  // ── Состояние: текущая страница (берётся из адреса) ──
+  const [page, setPage] = useState<Page>(() => currentRoute().page as Page);
 
   // ── Состояние: тема (читаем сохранённый выбор пользователя) ──
   const [theme, setTheme] = useState<"dark" | "light">(() => {
@@ -42,9 +44,18 @@ function AppInner() {
     });
   };
 
-  // ── Навигация: смена страницы + плавная прокрутка к якорю секции ──
+  // ── Кнопки «назад» и «вперёд» в браузере ──
+  useEffect(() => {
+    const onPop = () => setPage(currentRoute().page as Page);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // ── Навигация: меняем адрес страницы и прокручиваем к якорю ──
   const navigate: NavigateFn = (p, anchor) => {
     setPage(p);
+    // адрес меняется без перезагрузки — ссылку можно скопировать и отправить
+    window.history.pushState({ page: p }, "", buildPath(lang, p));
     window.setTimeout(() => {
       if (anchor) {
         document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -62,6 +73,9 @@ function AppInner() {
       className="oht-app min-h-screen"
       style={{ background: "var(--void)", fontFamily: "'Inter', sans-serif", color: "var(--txt)", transition: "background .3s ease, color .3s ease" }}
     >
+      {/* Заголовок вкладки, описание и OG-теги для превью ссылок */}
+      <PageMeta page={page} problem={currentProblem} />
+
       <Header page={page} navigate={navigate} theme={theme} toggleTheme={toggleTheme} />
 
       <main>

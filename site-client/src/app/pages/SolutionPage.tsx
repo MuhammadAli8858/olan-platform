@@ -1,27 +1,42 @@
 // ══════════════════════════════════════════════════════════════════
-// УНИВЕРСАЛЬНАЯ СТРАНИЦА РЕШЕНИЯ (одна на все 8 проблем)
+// УНИВЕРСАЛЬНАЯ СТРАНИЦА РЕШЕНИЯ (одна на все проблемы)
+//
+// Вместо одиночного технического паспорта на странице показывается
+// КАТАЛОГ КОМПЛЕКСОВ, которые решают именно эту проблему.
+// Нажатие на карточку открывает полную характеристику прибора
+// с самого верха страницы (DeviceDetail), оттуда фотографии
+// открываются на весь экран (PhotoLightbox). Везде есть «Назад».
 // Контент подставляется из src/app/data/solutions.ts по id проблемы.
 // Секции сверху вниз (у каждой свой класс):
 //   .sol-hero          — заголовок-боль + подводка
 //   .sol-problem-stats — 3 факта о проблеме с источниками
-//   .sol-solution      — продукт, продающий текст, преимущества, техпаспорт
+//   .sol-solution      — продукт, продающий текст, преимущества
+//   .sol-catalog       — КАТАЛОГ КОМПЛЕКСОВ для этой проблемы
 //   .sol-process       — 4 этапа внедрения
 //   .sol-results       — 4 измеримых результата
 //   .sol-cta           — призыв + форма заявки
 //   .sol-related       — смежные решения
 // ══════════════════════════════════════════════════════════════════
 
+import { useState, useRef, useEffect } from "react";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { Eyebrow } from "../components/ui/Eyebrow";
 import { ContactForm } from "../components/ui/ContactForm";
 import { Breadcrumbs } from "../components/solution/Breadcrumbs";
-import { SpecPanel } from "../components/solution/SpecPanel";
+import { DeviceCatalog } from "../components/solution/DeviceCatalog";
+import { DeviceDetail, type Device } from "../components/solution/DeviceDetail";
 import type { NavigateFn } from "../types";
 import { useLang } from "../i18n/LangContext";
 import { getIcon } from "../lib/icons";
 
 export function SolutionPage({ problem, navigate }: { problem: any; navigate: NavigateFn }) {
   const { t, content: site } = useLang();
+  // Открытая карточка прибора. null — показываем страницу решения.
+  const [device, setDevice] = useState<Device | null>(null);
+  const ctaRef = useRef<HTMLDivElement | null>(null);
+
+  // При переходе на другую проблему закрываем открытую карточку
+  useEffect(() => { setDevice(null); }, [problem.id]);
   const problems = site?.problems || [];
   const processSteps = site?.processSteps || [];
   const content = site?.solutions?.[problem.id];
@@ -40,6 +55,23 @@ export function SolutionPage({ problem, navigate }: { problem: any; navigate: Na
           <p className="text-lg mt-5 max-w-2xl" style={{ color: "var(--txt-2)" }}>{problem.short}</p>
         </div>
       </section>
+    );
+  }
+
+  // ── Открыта карточка прибора ──────────────────────────────────────
+  // Показываем её вместо страницы решения, с самого верха.
+  // Кнопка «Назад к каталогу» возвращает обратно.
+  if (device) {
+    return (
+      <DeviceDetail
+        device={device}
+        onBack={() => setDevice(null)}
+        onRequest={() => {
+          setDevice(null);
+          // даём странице отрисоваться и прокручиваем к форме заявки
+          setTimeout(() => ctaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+        }}
+      />
     );
   }
 
@@ -89,7 +121,7 @@ export function SolutionPage({ problem, navigate }: { problem: any; navigate: Na
       {/* ── Решение ───────────────────────────────────────────────────────── */}
       <section className="sol-solution" style={{ background: "var(--void)", padding: "clamp(56px, 11vw, 100px) 0" }}>
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-14 items-start">
+          <div className="max-w-3xl">
             <div>
               <Eyebrow color="var(--orange)">{t.sol.solutionFor} // {content.productName}</Eyebrow>
               <h2 className="font-display font-bold uppercase mb-6" style={{ color: "var(--txt)", fontSize: "clamp(2.2rem, 4vw, 3.1rem)", lineHeight: 1.08 }}>
@@ -108,11 +140,25 @@ export function SolutionPage({ problem, navigate }: { problem: any; navigate: Na
                 ); })}
               </div>
             </div>
-
-            <div className="lg:sticky lg:top-32">
-              <SpecPanel productName={content.productName} specs={content.specs} />
-            </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── Каталог комплексов ────────────────────────────────────────────
+          Пришёл на смену одиночному техпаспорту: здесь все приборы,
+          которыми закрывается эта проблема. Нажатие на карточку
+          открывает полную характеристику прибора. */}
+      <section
+        className="sol-catalog"
+        style={{ background: "var(--panel)", borderTop: "1px solid var(--line)", padding: "clamp(56px, 11vw, 100px) 0" }}
+      >
+        <div className="max-w-7xl mx-auto px-6">
+          <DeviceCatalog
+            devices={content.devices || []}
+            title={content.catalogTitle}
+            lead={content.catalogLead}
+            onOpen={setDevice}
+          />
         </div>
       </section>
 
@@ -160,7 +206,7 @@ export function SolutionPage({ problem, navigate }: { problem: any; navigate: Na
       </section>
 
       {/* ── CTA ───────────────────────────────────────────────────────────── */}
-      <section className="sol-cta" style={{ background: "var(--panel)", borderTop: "1px solid var(--line)", padding: "clamp(56px, 11vw, 100px) 0" }}>
+      <section ref={ctaRef} className="sol-cta" style={{ background: "var(--panel)", borderTop: "1px solid var(--line)", padding: "clamp(56px, 11vw, 100px) 0" }}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="hud max-w-3xl mx-auto p-6 md:p-8 lg:p-12 text-center" style={{ borderRadius: "var(--r-lg)", background: "var(--panel-2)", border: "1px solid var(--line)", boxShadow: "var(--card-shadow)" }}>
             <div className="font-tele text-[10px] tracking-[0.22em] uppercase mb-4" style={{ color: "var(--cyan)" }}>

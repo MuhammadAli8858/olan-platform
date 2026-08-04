@@ -12,7 +12,9 @@
 // Если перевода нет — сайт автоматически показывает русскую версию.
 // ══════════════════════════════════════════════════════════════════
 
-export const LANGS = ["ru", "uz", "en", "zh", "de", "be", "ar", "kk", "uk"];
+// Языки платформы. Чтобы добавить язык — допишите код сюда,
+// добавьте его в site-client/src/app/i18n/locales.ts и перезапустите сервер.
+export const LANGS = ["ru", "uz", "en", "zh", "ar"];
 
 const RU = {
   "company": {
@@ -1166,9 +1168,13 @@ const RU = {
  * или включить автоперевод в config.js.
  */
 import TR from "./seed-translations.json" with { type: "json" };
+import { applyDevices } from "./seed-devices.js";
 
 export function seedContent() {
-  const content = { ru: RU };
+  // Каталог комплексов и продающие тексты решений живут отдельно —
+  // в seed-devices.js. Здесь они подмешиваются в русское наполнение,
+  // а дальше расходятся по остальным языкам обычным переводом.
+  const content = { ru: applyDevices(structuredClone(RU)) };
 
   for (const lang of LANGS) {
     if (lang === "ru") continue;

@@ -1,21 +1,58 @@
 # ══════════════════════════════════════════════════════════════════
-# НАСТРОЙКИ NETLIFY ДЛЯ ЭТОГО САЙТА
+# НАСТРОЙКИ NETLIFY ДЛЯ САЙТА
 #
-# В настройках сайта на Netlify обязательно добавьте переменную:
-#   VITE_API_URL = https://api.вашдомен.com
-# (адрес вашего сервера с чатом — сам сервер на Netlify не живёт,
-#  подробности в файле NETLIFY.md в корне проекта)
+# Обязательно задайте в настройках сайта на Netlify:
+#   VITE_API_URL  = https://api.вашдомен.com   — адрес сервера
+#   VITE_SITE_URL = https://вашдомен.com       — адрес самого сайта
+#
+# VITE_SITE_URL нужен для canonical, sitemap.xml и превью ссылок
+# в мессенджерах. Если его не задать, будет подставлен
+# https://olanhightech.com — поправьте перед публикацией.
+#
+# Если VITE_API_URL задан, при сборке пререндер заберёт с сервера
+# актуальные тексты (те, что отредактированы в админ-панели)
+# и положит их прямо в HTML. Пересобирайте сайт после крупных
+# правок содержимого, чтобы обновились превью и поисковая выдача.
 # ══════════════════════════════════════════════════════════════════
 
 [build]
   command = "npm install && npm run build"
   publish = "dist"
 
-# Версия Node для сборки (Vite 6 требует Node 18 и выше)
+# Vite 6 требует Node 18+; пререндер использует fetch — нужен Node 20
 [build.environment]
   NODE_VERSION = "20"
 
-# Одностраничное приложение: любой адрес открывает index.html
+# ── Заголовки ──
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Готовые HTML-страницы не кэшируем надолго: иначе после правки
+# содержимого мессенджеры будут ещё сутки показывать старое превью
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ── Адреса ──
+# Короткая ссылка без языка ведёт на русскую версию
+[[redirects]]
+  from = "/solutions/*"
+  to = "/ru/solutions/:splat"
+  status = 301
+
+# ВАЖНО: это правило идёт ПОСЛЕДНИМ.
+# Netlify сначала отдаёт настоящие файлы (наши пререндеренные
+# страницы вида /en/solutions/solution-speeding/index.html),
+# и только если файла нет — подставляет приложение.
 [[redirects]]
   from = "/*"
   to = "/index.html"
