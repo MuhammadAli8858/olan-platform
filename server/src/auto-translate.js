@@ -54,23 +54,48 @@ export async function autoTranslateIfNeeded() {
 
   try {
     if (!data.snapshots) data.snapshots = {};
-    const result = await syncAllLanguages(
-      data.content,
-      data.snapshots,
-      "ru",
-      LANGS,
-      false,
-      "fill" // только непереведённые поля, остальное не трогаем
-    );
-    data.content = result.content;
-    data.snapshots = result.snapshots;
-    db.write();
 
-    for (const lang of pending) {
-      const r = result.report[lang];
-      if (r) console.log(`  [автоперевод] ✓ ${lang.toUpperCase()}: переведено ${r.updated}`);
+    // Делаем до трёх проходов: переводчик может не осилить всё за раз
+    // (ограничение по частоте запросов, обрыв связи). Каждый проход
+    // берёт только то, что осталось. Останавливаемся, когда прогресса
+    // больше нет — чтобы не крутиться впустую.
+    let prevLeft = Infinity;
+    for (let pass = 1; pass <= 3; pass++) {
+      const result = await syncAllLanguages(
+        data.content, data.snapshots, "ru", LANGS, false, "fill"
+      );
+      data.content = result.content;
+      data.snapshots = result.snapshots;
+      db.write();
+
+      const left = LANGS.filter((l) => l !== "ru")
+        .reduce((n, l) => n + countUntranslated(data.content, l), 0);
+
+      for (const lang of pending) {
+        const r = result.report[lang];
+        if (r?.updated) {
+          const tail = r.failed ? `, не поддалось ${r.failed}` : "";
+          console.log(`  [автоперевод] проход ${pass} · ${lang.toUpperCase()}: переведено ${r.updated}${tail}`);
+        }
+      }
+
+      if (left === 0) break;
+      if (left >= prevLeft) {
+        console.warn(`  [автоперевод] осталось непереведённым строк: ${left}. Переводчик больше не отвечает — допереведите позже кнопкой в админ-панели.`);
+        break;
+      }
+      prevLeft = left;
     }
-    console.log("  [автоперевод] готово — обновите страницу сайта");
+
+    const remain = LANGS.filter((l) => l !== "ru")
+      .map((l) => [l, countUntranslated(data.content, l)])
+      .filter(([, n]) => n > 0);
+
+    if (remain.length) {
+      console.log(`  [автоперевод] осталось: ${remain.map(([l, n]) => `${l.toUpperCase()} ${n}`).join(", ")}`);
+    } else {
+      console.log("  [автоперевод] готово — переведено всё");
+    }
   } catch (err) {
     console.warn(`  [автоперевод] не удалось: ${err.message}. Попробуем при следующем запуске.`);
   } finally {

@@ -10,8 +10,9 @@
 // Секции сверху вниз (у каждой свой класс):
 //   .sol-hero          — заголовок-боль + подводка
 //   .sol-problem-stats — 3 факта о проблеме с источниками
-//   .sol-solution      — продукт, продающий текст, преимущества
-//   .sol-catalog       — КАТАЛОГ КОМПЛЕКСОВ для этой проблемы
+//   .sol-solution      — слева продающий текст и преимущества,
+//                        справа .sol-catalog — КАТАЛОГ КОМПЛЕКСОВ
+//                        (встал на место прежнего техпаспорта)
 //   .sol-process       — 4 этапа внедрения
 //   .sol-results       — 4 измеримых результата
 //   .sol-cta           — призыв + форма заявки
@@ -121,8 +122,8 @@ export function SolutionPage({ problem, navigate }: { problem: any; navigate: Na
       {/* ── Решение ───────────────────────────────────────────────────────── */}
       <section className="sol-solution" style={{ background: "var(--void)", padding: "clamp(56px, 11vw, 100px) 0" }}>
         <div className="max-w-7xl mx-auto px-6">
-          <div className="max-w-3xl">
-            <div>
+          <div className="grid lg:grid-cols-2 gap-10 xl:gap-14 items-start">
+            <div style={{ minWidth: 0 }}>
               <Eyebrow color="var(--orange)">{t.sol.solutionFor} // {content.productName}</Eyebrow>
               <h2 className="font-display font-bold uppercase mb-6" style={{ color: "var(--txt)", fontSize: "clamp(2.2rem, 4vw, 3.1rem)", lineHeight: 1.08 }}>
                 {content.solutionTitle}
@@ -140,25 +141,19 @@ export function SolutionPage({ problem, navigate }: { problem: any; navigate: Na
                 ); })}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ── Каталог комплексов ────────────────────────────────────────────
-          Пришёл на смену одиночному техпаспорту: здесь все приборы,
-          которыми закрывается эта проблема. Нажатие на карточку
-          открывает полную характеристику прибора. */}
-      <section
-        className="sol-catalog"
-        style={{ background: "var(--panel)", borderTop: "1px solid var(--line)", padding: "clamp(56px, 11vw, 100px) 0" }}
-      >
-        <div className="max-w-7xl mx-auto px-6">
-          <DeviceCatalog
-            devices={content.devices || []}
-            title={content.catalogTitle}
-            lead={content.catalogLead}
-            onOpen={setDevice}
-          />
+            {/* Каталог комплексов — ровно там, где раньше был
+                одиночный технический паспорт. Приборы только для
+                этой проблемы; нажатие открывает полную карточку. */}
+            <div className="sol-catalog" style={{ minWidth: 0 }}>
+              <DeviceCatalog
+                devices={content.devices || []}
+                title={content.catalogTitle}
+                lead={content.catalogLead}
+                onOpen={setDevice}
+              />
+            </div>
+          </div>
         </div>
       </section>
 

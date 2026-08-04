@@ -89,7 +89,30 @@ export function ContentEditor() {
   // применять правки ко всем языкам сайта (включено по умолчанию)
   const [syncAll, setSyncAll] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [trStatus, setTrStatus] = useState<{ provider: string; enabled: boolean } | null>(null);
+  const [trStatus, setTrStatus] = useState<any>(null);
+  const [filling, setFilling] = useState(false);
+
+  // Допереводить всё, что осталось на русском.
+  // Ручные переводы при этом не затрагиваются.
+  const fillMissing = async () => {
+    setFilling(true); setError(""); setStatus("Допереводим — это может занять минуту…");
+    try {
+      const res = await api("/api/content/ru/retranslate?mode=fill", { method: "POST" });
+      const left: number = Object.values(res.remaining || {}).reduce(
+        (n: number, v: any) => n + (Number(v) || 0), 0 as number
+      ) as number;
+      setStatus(left > 0
+        ? `Готово. Осталось непереведённых строк: ${left} — попробуйте ещё раз или переведите вручную.`
+        : "Готово — переведено всё");
+      await load();
+      setTrStatus(await api("/api/content/translation-status"));
+    } catch (e: any) {
+      setError(e.message);
+      setStatus("");
+    } finally {
+      setFilling(false);
+    }
+  };
 
   // ─── Загрузка ───
   const load = async () => {
@@ -265,26 +288,49 @@ export function ContentEditor() {
         <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: "var(--txt-2)", lineHeight: 1.5 }}>
           {syncAll ? (
             trStatus?.enabled
-              ? <>Текст будет переведён автоматически ({trStatus.provider}). Переводы, сделанные вручную, сохранятся.</>
+              ? <>{(trStatus as any).label || "Текст будет переведён автоматически"}. Переводы, сделанные вручную, сохранятся.</>
               : <>Автоперевод выключен — текст скопируется на все языки, потом его можно перевести вручную. Включается в <code>server/src/config.js</code>.</>
           ) : (
             <>Изменения сохранятся только для языка «{LANG_NAMES[lang]}» и не затронут остальные.</>
           )}
         </div>
 
-        {/* какие языки заполнены */}
-        <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-          {langs.map((l) => (
-            <span
-              key={l}
-              className={`badge ${all[l] ? "badge-green" : "badge-grey"}`}
-              style={{ padding: "3px 8px", fontSize: 10 }}
-              title={all[l] ? "Язык заполнен" : "Язык пуст — покажется русская версия"}
+        {/* Состояние языков: зелёный — переведено полностью,
+            оранжевый — осталось N строк на русском */}
+        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", alignItems: "center" }}>
+          {langs.map((l) => {
+            const info = trStatus?.langs?.find((x: any) => x.code === l);
+            const left = info?.untranslated ?? 0;
+            const cls = !all[l] ? "badge-grey" : left > 0 ? "badge-orange" : "badge-green";
+            return (
+              <span
+                key={l}
+                className={`badge ${cls}`}
+                style={{ padding: "3px 8px", fontSize: 10 }}
+                title={
+                  !all[l] ? "Язык пуст — покажется русская версия"
+                  : left > 0 ? `Осталось непереведённых строк: ${left}`
+                  : "Переведено полностью"
+                }
+              >
+                {all[l] && left === 0 && <Check style={{ width: 9, height: 9 }} />}
+                {l.toUpperCase()}{left > 0 ? ` · ${left}` : ""}
+              </span>
+            );
+          })}
+
+          {/* Кнопка появляется, только если есть что допереводить */}
+          {(trStatus?.langs || []).some((x: any) => (x.untranslated || 0) > 0) && (
+            <button
+              className="btn btn-ghost btn-sm"
+              disabled={filling}
+              onClick={fillMissing}
+              title="Перевести строки, которые остались на русском. Ручные переводы не тронутся."
             >
-              {all[l] && <Check style={{ width: 9, height: 9 }} />}
-              {l.toUpperCase()}
-            </span>
-          ))}
+              <Languages style={{ width: 12, height: 12 }} />
+              {filling ? "Переводим…" : "Допереводить"}
+            </button>
+          )}
         </div>
       </div>
 

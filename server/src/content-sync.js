@@ -19,7 +19,7 @@
 //     тогда перезаписывается всё, включая ручные правки.
 // ══════════════════════════════════════════════════════════════════
 
-import { translateBatch } from "./translate.js";
+import { translateBatch, looksUntranslated } from "./translate.js";
 
 /**
  * Какие поля переводить.
@@ -37,10 +37,12 @@ const TRANSLATABLE = [
   "hero.titleAccent",
   "hero.titleLine3",
   "hero.lead",
+  "stats.*.value",
   "stats.*.label",
   "processSteps.*.title",
   "processSteps.*.desc",
   "detections.*.type",
+  "detections.*.value",
   "problems.*.title",
   "problems.*.short",
   "solutions.*.heroAccent",
@@ -49,12 +51,14 @@ const TRANSLATABLE = [
   "solutions.*.solutionTitle",
   "solutions.*.sellText",
   "solutions.*.ctaLine",
+  "solutions.*.stats.*.value",
   "solutions.*.stats.*.fact",
   "solutions.*.stats.*.source",
   "solutions.*.features.*.title",
   "solutions.*.features.*.desc",
   "solutions.*.specs.*.k",
   "solutions.*.specs.*.v",
+  "solutions.*.results.*.value",
   "solutions.*.results.*.label",
   "solutions.*.catalogTitle",
   "solutions.*.catalogLead",
@@ -69,15 +73,18 @@ const TRANSLATABLE = [
   "solutions.*.devices.*.features.*.title",
   "solutions.*.devices.*.features.*.desc",
   "solutions.*.devices.*.photos.*.caption",
+  "solutions.*.devices.*.priceNote",
   "countries.*.name",
   "projectMarkers.*.name",
   "projects.*.country",
   "projects.*.city",
   "projects.*.title",
   "projects.*.desc",
+  "projects.*.metrics.*.v",
   "projects.*.metrics.*.l",
   "partners.*.tag",
   "partners.*.description",
+  "certs.*",
 ];
 
 /**
@@ -95,10 +102,12 @@ const KINDS = [
   ["hero.titleAccent", "выделенное слово в главном заголовке"],
   ["hero.titleLine3", "часть главного заголовка сайта"],
   ["hero.lead", "подводка под главным заголовком"],
+  ["stats.*.value", "цифра с единицей измерения, очень коротко"],
   ["stats.*.label", "подпись к цифре, 2-4 слова"],
   ["processSteps.*.title", "заголовок этапа внедрения"],
   ["processSteps.*.desc", "описание этапа внедрения"],
   ["detections.*.type", "тип нарушения, короткое название"],
+  ["detections.*.value", "показание прибора с единицей измерения"],
   ["problems.*.title", "заголовок проблемы клиента"],
   ["problems.*.short", "краткое описание проблемы, 1 предложение"],
   ["solutions.*.heroAccent", "выделенная часть заголовка страницы"],
@@ -109,12 +118,14 @@ const KINDS = [
   ["solutions.*.ctaLine", "призыв к действию"],
   ["solutions.*.catalogTitle", "заголовок каталога приборов"],
   ["solutions.*.catalogLead", "подводка к каталогу приборов"],
+  ["solutions.*.stats.*.value", "цифра факта, очень коротко"],
   ["solutions.*.stats.*.fact", "факт о проблеме"],
   ["solutions.*.stats.*.source", "название источника данных"],
   ["solutions.*.features.*.title", "заголовок преимущества, 2-4 слова"],
   ["solutions.*.features.*.desc", "описание преимущества"],
   ["solutions.*.specs.*.k", "название параметра техпаспорта"],
   ["solutions.*.specs.*.v", "значение параметра техпаспорта"],
+  ["solutions.*.results.*.value", "цифра результата, очень коротко"],
   ["solutions.*.results.*.label", "подпись к результату внедрения"],
   ["solutions.*.devices.*.name", "название прибора (обычно не переводится)"],
   ["solutions.*.devices.*.tagline", "тип прибора, короткая строка"],
@@ -127,6 +138,7 @@ const KINDS = [
   ["solutions.*.devices.*.features.*.title", "заголовок возможности прибора"],
   ["solutions.*.devices.*.features.*.desc", "описание возможности прибора"],
   ["solutions.*.devices.*.photos.*.caption", "подпись к фотографии"],
+  ["solutions.*.devices.*.priceNote", "надпись о цене на карточке, 2-3 слова"],
   ["countries.*.name", "название страны"],
   ["projectMarkers.*.name", "название города"],
   ["projects.*.country", "название страны"],
@@ -136,6 +148,8 @@ const KINDS = [
   ["projects.*.metrics.*.l", "подпись к цифре проекта"],
   ["partners.*.tag", "категория партнёра, 1-3 слова"],
   ["partners.*.description", "описание партнёра"],
+  ["projects.*.metrics.*.v", "цифра проекта, очень коротко"],
+  ["certs.*", "название сертификата или стандарта"],
 ];
 
 /** Подходит ли путь под шаблон со звёздочками */
@@ -233,6 +247,7 @@ export async function syncAllLanguages(content, snapshots, sourceLang, langs, fo
     const toTranslate = [];
     let kept = 0;      // сохранено ручных переводов
     let unchanged = 0; // не переводилось повторно (исходник не менялся)
+    let failed = 0;    // не удалось перевести — остался русский текст
 
     for (const { path, value, kind } of sourceStrings) {
       const prevValue = prev ? get(prev, path) : undefined;
@@ -285,6 +300,10 @@ export async function syncAllLanguages(content, snapshots, sourceLang, langs, fo
         toTranslate.map((x) => x.kind) // подсказка: заголовок / абзац / параметр
       );
       toTranslate.forEach((item, i) => set(target, item.path, translated[i] ?? item.value));
+      // считаем, сколько строк так и не перевелось — это видно админу
+      failed = toTranslate.filter((item, i) =>
+        looksUntranslated(item.value, translated[i] ?? item.value, lang)
+      ).length;
     }
 
     // Снимок «что записал переводчик»: для ручных полей сохраняем
@@ -305,7 +324,7 @@ export async function syncAllLanguages(content, snapshots, sourceLang, langs, fo
 
     content[lang] = target;
     snapshots[lang] = { src: structuredClone(source), out };
-    report[lang] = { updated: toTranslate.length, keptManual: kept, skipped: unchanged };
+    report[lang] = { updated: toTranslate.length, keptManual: kept, skipped: unchanged, failed };
   }
 
   snapshots[sourceLang] = { src: structuredClone(source), out: null };

@@ -24,18 +24,57 @@
  */
 export const PROTECTED = [
   // ─── названия компании и продуктов ───
+  //
+  // ⚠️ ДОБАВИЛИ НОВЫЙ ПРИБОР В КАТАЛОГ — ВПИШИТЕ ЕГО НАЗВАНИЕ СЮДА,
+  //    иначе переводчик переведёт его как обычное слово.
+  //    Длинные названия должны идти ВЫШЕ коротких: иначе «TRC»
+  //    съест часть «TRC-Cross».
   "OLAN HIGH TECH PROJECT",
   "OLAN HIGH TECH",
   "OLAN",
   "INTELLIGENT TRAFFIC ENFORCEMENT",
+
+  // скорость
   "W Space-S",
   "W Space-A",
   "W Space",
   "URALAN-P",
   "URALAN",
-  "SOVA-M",
-  "SOVA",
+  // перекрёсток
+  "TRC-Cross",
+  "TRC-Phase",
+  "TRC-Vision",
   "TRC",
+  // парковка
+  "PARKON-S",
+  "PARKON-M",
+  "PARKON-Z",
+  "PARKON",
+  // остановка запрещена
+  "STOPLINE-S",
+  "STOPLINE-M",
+  "STOPLINE-G",
+  "STOPLINE",
+  // выделенная полоса
+  "BUSLINE-A",
+  "BUSLINE-S",
+  "BUSLINE-M",
+  "BUSLINE",
+  // железнодорожный переезд
+  "RAILGUARD-C",
+  "RAILGUARD-S",
+  "RAILGUARD-M",
+  "RAILGUARD",
+  // телефон за рулём
+  "DRIVERCAM-S",
+  "DRIVERCAM-M",
+  "DRIVERCAM-G",
+  "DRIVERCAM",
+  // ремни безопасности
+  "BELTCAM-S",
+  "BELTCAM-M",
+  "BELTCAM-G",
+  "BELTCAM",
 
   // ─── стандарты и сертификаты ───
   "ISO 9001:2015",

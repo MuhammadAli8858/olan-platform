@@ -39,6 +39,33 @@ const DEEPL_CODES = {
   uz: null, // DeepL не знает узбекский — для него сработает запасной переводчик
 };
 
+// ─── Проверка полноты перевода ────────────────────────────────────
+// Бесплатные переводчики иногда молча возвращают исходный текст:
+// сработало ограничение по частоте запросов, оборвалась связь,
+// пришёл ответ неожиданного формата. Раньше такие строки просто
+// оставались на русском — отсюда и «переводит не везде».
+// Теперь мы это ловим и переводим повторно.
+
+/** Языки, которые пишутся кириллицей (для них проверка не годится) */
+const CYRILLIC_LANGS = new Set(["ru", "uk", "be", "bg", "sr", "kk", "ky", "mk", "mn", "tg"]);
+
+const hasCyrillic = (s) => /[А-Яа-яЁё]/.test(s);
+
+/**
+ * Строка осталась непереведённой?
+ * Признак простой: в исходнике был русский текст, и в переводе он
+ * остался — хотя целевой язык кириллицей не пишется.
+ */
+function looksUntranslated(source, result, to) {
+  if (CYRILLIC_LANGS.has(to)) return false;      // проверка неприменима
+  if (!source || !result) return true;
+  if (!hasCyrillic(source)) return false;        // переводить было нечего
+  return hasCyrillic(result);
+}
+
+/** Небольшая пауза между запросами, чтобы не поймать ограничение */
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
 // ─── Кэш переводов ────────────────────────────────────────────────
 // Один и тот же текст на одном языке переводится один раз за запуск
 // сервера. Экономит и время, и лимиты API.
@@ -75,39 +102,113 @@ export async function translateBatch(texts, from, to, kinds = []) {
   // 2. Прячем непереводимые термины
   const masked = todo.map(({ text }) => protect(text));
 
-  // 3. Переводим
-  let translated;
-  try {
-    translated = await runProvider(
-      provider,
-      masked.map((m) => m.masked),
-      from,
-      to,
-      todo.map((x) => x.kind)
-    );
-  } catch (err) {
-    console.warn(`[перевод] ${provider} ${from}→${to}: ${err.message}`);
-    // Смысловой переводчик не ответил — пробуем бесплатный Google
-    if (provider === "claude") {
-      try {
-        translated = await viaGoogleFree(masked.map((m) => m.masked), from, to);
-        console.warn(`[перевод] ${from}→${to}: использован запасной переводчик Google`);
-      } catch {
-        translated = null;
+  // 3. Переводим ЦЕПОЧКОЙ переводчиков.
+  //    Каждый следующий получает только те строки, которые предыдущий
+  //    не осилил. Так одна недоступная служба больше не оставляет
+  //    половину сайта на русском.
+  const chain = providerChain(provider);
+  let results = new Array(todo.length).fill(null);
+
+  /** Индексы строк, которые ещё не переведены */
+  const pending = () =>
+    todo.map((_, k) => k).filter((k) => {
+      const raw = results[k];
+      const value = raw ? restore(raw, masked[k].map) : null;
+      return !value || looksUntranslated(todo[k].text, value, to);
+    });
+
+  for (const current of chain) {
+    let left = pending();
+    if (!left.length) break;
+
+    // На каждом переводчике — до трёх заходов: сначала крупными
+    // порциями (быстро), потом мелкими (надёжнее при ограничениях).
+    for (let round = 0; round < 3 && left.length; round++) {
+      const size = round === 0 ? left.length : round === 1 ? 8 : 2;
+      let anySuccess = false;
+      let deadChunks = 0;
+
+      for (let i = 0; i < left.length; i += size) {
+        const slice = left.slice(i, i + size);
+        let progressed = false;
+
+        try {
+          const got = await runProvider(
+            current,
+            slice.map((k) => masked[k].masked),
+            from,
+            to,
+            slice.map((k) => todo[k].kind)
+          );
+          slice.forEach((k, j) => {
+            const raw = got?.[j];
+            if (!raw) return;
+            const value = restore(String(raw), masked[k].map);
+            if (value && !looksUntranslated(todo[k].text, value, to)) {
+              results[k] = String(raw);
+              progressed = true;
+            }
+          });
+        } catch (err) {
+          if (round === 0 && i === 0) {
+            console.warn(`[перевод] ${current} ${from}→${to}: ${err.message}`);
+          }
+          // Дневной лимит или отказ службы — к следующему переводчику
+          if (/лимит/i.test(err.message)) { deadChunks = 99; break; }
+        }
+
+        if (progressed) { deadChunks = 0; anySuccess = true; usedProviders.add(current); }
+        // Три пустые порции подряд — служба недоступна, не тратим время
+        else if (++deadChunks >= 3) break;
+
+        await pause(200);
       }
+
+      left = pending();
+      if (!anySuccess) break;          // заход не дал ничего — следующий тоже не даст
+      if (left.length) await pause(900); // пауза перед мелкими порциями
+    }
+
+    const still = pending();
+    if (still.length && chain.indexOf(current) < chain.length - 1) {
+      const next = chain[chain.indexOf(current) + 1];
+      console.warn(`[перевод] ${from}→${to}: ${still.length} строк не прошли через ${current}, пробуем ${next}`);
     }
   }
 
-  // 4. Возвращаем термины на место и складываем в кэш
+  const notDone = pending().length;
+  if (notDone) {
+    console.warn(
+      `[перевод] ${from}→${to}: ${notDone} из ${todo.length} строк остались непереведёнными. ` +
+      `Все переводчики недоступны — проверьте интернет на сервере или задайте ANTHROPIC_API_KEY.`
+    );
+  }
+
+  // 5. Возвращаем термины на место и складываем в кэш
   todo.forEach((item, k) => {
-    const raw = translated?.[k];
-    const value = raw ? restore(String(raw), masked[k].map) : item.text;
+    const raw = results[k];
+    const value = raw ? restore(raw, masked[k].map) : item.text;
     out[item.i] = value || item.text;
-    cache.set(cacheKey(item.text, from, to, item.kind), out[item.i]);
+    // в кэш кладём только удавшийся перевод, чтобы неудача
+    // не «залипла» до перезапуска сервера
+    if (!looksUntranslated(item.text, out[item.i], to)) {
+      cache.set(cacheKey(item.text, from, to, item.kind), out[item.i]);
+    }
   });
 
   return out;
 }
+
+/** Сколько строк осталось непереведёнными (для отчёта админу) */
+export function countFailures(sources, results, to) {
+  let n = 0;
+  sources.forEach((src, i) => {
+    if (looksUntranslated(src, results[i], to)) n++;
+  });
+  return n;
+}
+
+export { looksUntranslated };
 
 /** Какой поставщик реально используется */
 function resolveProvider() {
@@ -123,10 +224,37 @@ function resolveProvider() {
 function runProvider(provider, texts, from, to, kinds) {
   if (provider === "claude") return viaClaude(texts, from, to, kinds);
   if (provider === "google-free") return viaGoogleFree(texts, from, to);
+  if (provider === "mymemory") return viaMyMemory(texts, from, to);
   if (provider === "libre") return viaLibre(texts, from, to);
   if (provider === "google") return viaGoogle(texts, from, to);
   if (provider === "deepl") return viaDeepL(texts, from, to);
   throw new Error(`неизвестный поставщик перевода: ${provider}`);
+}
+
+/**
+ * ЦЕПОЧКА ПЕРЕВОДЧИКОВ — главная защита от «переводит не везде».
+ *
+ * Раньше переводчик был один: если он не отвечал (нет интернета,
+ * адрес сервера заблокирован, исчерпан лимит), строка молча
+ * оставалась на русском. Теперь строки, которые не перевелись,
+ * передаются следующему переводчику в цепочке.
+ *
+ * Порядок: сначала основной (самый качественный), затем запасные.
+ */
+function providerChain(main) {
+  if (main === "none") return [];
+  const chain = [main];
+  // бесплатные запасные — добавляем, если они ещё не в цепочке
+  for (const backup of ["google-free", "mymemory"]) {
+    if (!chain.includes(backup)) chain.push(backup);
+  }
+  return chain;
+}
+
+/** Какие переводчики реально сработали — показываем администратору */
+const usedProviders = new Set();
+export function lastUsedProviders() {
+  return [...usedProviders];
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -342,6 +470,48 @@ async function viaGoogleFree(texts, from, to) {
   return out;
 }
 
+// ─── MyMemory ─────────────────────────────────────────────────────
+// Второй бесплатный переводчик, ключ не нужен.
+//
+// Зачем он: Google блокирует запросы с адресов дата-центров, поэтому
+// на боевом хостинге (Render, Railway, VPS) бесплатный Google-переводчик
+// часто молча не работает — и текст остаётся русским. MyMemory с таких
+// адресов работает, поэтому служит запасным вариантом.
+//
+// Ограничение: примерно 5000 слов в сутки с одного адреса. Для правок
+// содержимого этого достаточно; для перевода всего сайта целиком лучше
+// задать ANTHROPIC_API_KEY и переводить смысловым переводчиком.
+
+async function myMemoryOne(text, from, to) {
+  const url =
+    "https://api.mymemory.translated.net/get" +
+    `?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  const value = json?.responseData?.translatedText;
+  if (!value) throw new Error("пустой ответ");
+  // сервис возвращает предупреждения прямо в поле перевода
+  if (/MYMEMORY WARNING|QUERY LENGTH LIMIT/i.test(value)) throw new Error("исчерпан дневной лимит");
+  return value;
+}
+
+async function viaMyMemory(texts, from, to) {
+  const out = new Array(texts.length);
+  // построчно, с паузой: сервис не принимает пакеты
+  for (let i = 0; i < texts.length; i++) {
+    try {
+      out[i] = await myMemoryOne(texts[i], from, to);
+    } catch (err) {
+      out[i] = null;
+      // дневной лимит — дальше пробовать бессмысленно
+      if (/лимит/.test(err.message)) throw err;
+    }
+    await pause(120);
+  }
+  return out;
+}
+
 // ─── LibreTranslate ───────────────────────────────────────────────
 async function viaLibre(texts, from, to) {
   const res = await fetch(`${TRANSLATE.libreUrl}/translate`, {
@@ -406,16 +576,20 @@ export function translationEnabled() {
 export function translationInfo() {
   const provider = resolveProvider();
   const smart = provider === "claude";
+  const chain = providerChain(provider);
   return {
     provider,
+    chain,                       // порядок, в котором пробуются переводчики
+    used: [...usedProviders],    // какие реально сработали с момента запуска
     enabled: provider !== "none",
     smart,
     label: smart
-      ? "Смысловой перевод (учитывает отрасль и контекст)"
-      : provider === "google-free"
-      ? "Дословный перевод Google (бесплатный). Для грамотного перевода добавьте ключ ANTHROPIC_API_KEY"
+      ? "Смысловой перевод: учитывает отрасль, контекст и стиль. Если служба недоступна — включатся запасные."
       : provider === "none"
-      ? "Перевод выключен — текст копируется на все языки"
-      : `Переводчик: ${provider}`,
+      ? "Перевод выключен — текст копируется на все языки без изменений."
+      : "Дословный перевод (бесплатный, без ключа). Для грамотного перевода задайте ANTHROPIC_API_KEY на сервере.",
+    hint:
+      "Строки, которые не смог перевести один переводчик, автоматически " +
+      "передаются следующему: " + chain.join(" → ") + ".",
   };
 }

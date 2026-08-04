@@ -23,7 +23,7 @@ import db from "./db.js";
 import { login, requireAuth, hashPassword, verifyToken } from "./auth.js";
 import * as chatService from "./chat-service.js";
 import { LANGS } from "./seed-content.js";
-import { syncAllLanguages } from "./content-sync.js";
+import { syncAllLanguages, collect, get } from "./content-sync.js";
 import { autoTranslateIfNeeded } from "./auto-translate.js";
 import { translationEnabled, translationInfo } from "./translate.js";
 import { TRANSLATE } from "./config.js";
@@ -199,23 +199,64 @@ app.post("/api/content/:lang/retranslate", requireAuth(["admin"]), async (req, r
   if (!data.content[lang]) return res.status(400).json({ error: "У этого языка ещё нет содержимого" });
   if (!data.snapshots) data.snapshots = {};
 
+  // ?mode=fill — допереводить только то, что осталось на русском
+  // (ручные переводы не трогаем). Без параметра — перевести всё заново.
+  const fill = req.query.mode === "fill";
+
   try {
-    const result = await syncAllLanguages(data.content, data.snapshots, lang, LANGS, true);
-    data.content = result.content;
-    data.snapshots = result.snapshots;
-    db.write();
-    res.json({ ok: true, ...translationInfo(), report: result.report });
+    // До трёх проходов: переводчик может не осилить всё за один раз.
+    // Останавливаемся, когда прогресса больше нет.
+    let report = {};
+    let prevLeft = Infinity;
+
+    for (let pass = 1; pass <= 3; pass++) {
+      const result = await syncAllLanguages(
+        data.content, data.snapshots, lang, LANGS, !fill, fill ? "fill" : "sync"
+      );
+      data.content = result.content;
+      data.snapshots = result.snapshots;
+      db.write();
+      report = result.report;
+
+      const left = LANGS.filter((l) => l !== lang)
+        .reduce((n, l) => n + untranslatedCount(data.content, l), 0);
+      if (left === 0 || left >= prevLeft) break;
+      prevLeft = left;
+    }
+
+    const remaining = Object.fromEntries(
+      LANGS.filter((l) => l !== lang).map((l) => [l, untranslatedCount(data.content, l)])
+    );
+
+    res.json({ ok: true, ...translationInfo(), report, remaining });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+/**
+ * Сколько строк на языке осталось непереведёнными.
+ * Считаем те переводимые поля, что до сих пор равны русскому
+ * исходнику и содержат русские буквы.
+ */
+function untranslatedCount(content, lang) {
+  const cur = content[lang];
+  if (!cur) return 0;
+  return collect(content.ru).filter(
+    ({ path, value }) => get(cur, path) === value && /[А-Яа-яЁё]/.test(value)
+  ).length;
+}
 
 /** Состояние перевода — для подсказки в админ-панели */
 app.get("/api/content/translation-status", requireAuth(["admin"]), (_req, res) => {
   const data = db.read();
   res.json({
     ...translationInfo(), // provider, enabled, smart, label
-    langs: LANGS.map((l) => ({ code: l, filled: Boolean(data.content[l]) })),
+    langs: LANGS.map((l) => ({
+      code: l,
+      filled: Boolean(data.content[l]),
+      untranslated: l === "ru" ? 0 : untranslatedCount(data.content, l),
+    })),
   });
 });
 

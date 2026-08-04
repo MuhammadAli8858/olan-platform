@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" width="800" height="520">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#0E1D2E"/><stop offset="1" stop-color="#0B1420"/></linearGradient>
+<pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse">
+<path d="M40 0H0V40" fill="none" stroke="#1E3350" stroke-width="0.6" opacity="0.5"/></pattern></defs>
+<rect width="800" height="520" fill="url(#sky)"/><rect width="800" height="520" fill="url(#g)"/><path d="M272 300 a128 128 0 0 1 256 0 z" fill="#16283F" stroke="#1E3350" stroke-width="2.5"/><path d="M272 300 h256" stroke="#1E3350" stroke-width="2.5"/><circle cx="400" cy="255.2" r="53.76" fill="#0C1826" stroke="#41D9E8" stroke-width="2"/><circle cx="400" cy="255.2" r="23.04" fill="#41D9E8" opacity="0.45"/><rect x="70" y="405" width="230" height="11" rx="5" fill="#F5720A"/><rect x="54" y="391" width="22" height="70" rx="5" fill="#16283F" stroke="#1E3350" stroke-width="2"/><text x="28" y="480" font-family="monospace" font-size="15" letter-spacing="3" fill="#F5720A">RAILGUARD-S</text>
+<text x="28" y="500" font-family="monospace" font-size="11" letter-spacing="2.5" fill="#6B87A8">ОБЩИЙ ВИД</text>
+<rect x="26" y="26" width="34" height="2" fill="#F5720A"/><rect x="26" y="26" width="2" height="34" fill="#F5720A"/>
+<rect x="740" y="26" width="34" height="2" fill="#41D9E8"/><rect x="772" y="26" width="2" height="34" fill="#41D9E8"/></svg>

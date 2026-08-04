@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" width="800" height="520">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#0E1D2E"/><stop offset="1" stop-color="#0B1420"/></linearGradient>
+<pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse">
+<path d="M40 0H0V40" fill="none" stroke="#1E3350" stroke-width="0.6" opacity="0.5"/></pattern></defs>
+<rect width="800" height="520" fill="url(#sky)"/><rect width="800" height="520" fill="url(#g)"/><rect x="280" y="150" width="240" height="110" rx="10" fill="#16283F" stroke="#1E3350" stroke-width="2.5"/><rect x="288" y="158" width="224" height="94" rx="6" fill="none" stroke="#1E3350" stroke-width="1" opacity="0.6"/><circle cx="400.0" cy="205.0" r="26" fill="#0C1826" stroke="#41D9E8" stroke-width="2"/><circle cx="400.0" cy="205.0" r="11.700000000000001" fill="#41D9E8" opacity="0.35"/><rect x="498" y="156" width="8" height="4" rx="2" fill="#F5720A"/><path d="M400 260 L340 400 M400 260 L460 400 M400 260 L400 400" stroke="#1E3350" stroke-width="6" stroke-linecap="round"/><rect x="320" y="398" width="160" height="9" rx="4" fill="#16283F" stroke="#1E3350" stroke-width="2"/><text x="28" y="480" font-family="'JetBrains Mono',monospace" font-size="15" letter-spacing="3" fill="#F5720A">KONTUR-M</text>
+<text x="28" y="500" font-family="'JetBrains Mono',monospace" font-size="11" letter-spacing="2.5" fill="#6B87A8">ОБЩИЙ ВИД</text>
+<rect x="26" y="26" width="34" height="2" fill="#F5720A"/><rect x="26" y="26" width="2" height="34" fill="#F5720A"/>
+<rect x="740" y="26" width="34" height="2" fill="#41D9E8"/><rect x="772" y="26" width="2" height="34" fill="#41D9E8"/></svg>
